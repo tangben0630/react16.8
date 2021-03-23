@@ -1828,6 +1828,7 @@ let lastCommittedRootDuringThisBatch: FiberRoot | null = null;
 const timeHeuristicForUnitOfWork = 1;
 
 function recomputeCurrentRendererTime() {
+  //现在的值 - 初始的值
   const currentTimeMs = now() - originalStartTimeMs;
   currentRendererTime = msToExpirationTime(currentTimeMs);
 }
@@ -1939,7 +1940,7 @@ function requestCurrentTime() {
   // But the scheduler time can only be updated if there's no pending work, or
   // if we know for certain that we're not in the middle of an event.
 
-  if (isRendering) {
+  if (isRendering) {// We're already rendering.
     // We're already rendering. Return the most recently read time.
     return currentSchedulerTime;
   }

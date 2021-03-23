@@ -186,6 +186,10 @@ export function applyDerivedStateFromProps(
 const classComponentUpdater = {
   isMounted,
   enqueueSetState(inst, payload, callback) {
+    // inst 就是this.setState 传进来的 this，
+    // payload就是setState里面传进来的参数
+    // inst 就是this.setState 传进来的 this，
+    
     const fiber = ReactInstanceMap.get(inst);
     const currentTime = requestCurrentTime();
     const expirationTime = computeExpirationForFiber(currentTime, fiber);
