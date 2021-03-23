@@ -23,6 +23,27 @@
 
   setState & forceUpdate
 
+
+
     1，给节点的fiber创建更新
     2，更新的类型是不同的
     3，
+
+
+第四章：react是如何更新的
+
+  1，Scheduler 的整体流程概览
+  2，调度过程中各种全局变量的一览
+  3，构建任务调度的概念
+
+  大体的流程
+    ReactDOM.render() ===> createUpdate  ===> schedulerWork ===> addRootToScheduler
+    ===> 是否正在render阶段 ===> 
+
+
+  requestWork的工作：
+    1，加入root调度队列
+    2，判断是否批量更新
+    3，根据 expirationTime 判断调度类型
+
+

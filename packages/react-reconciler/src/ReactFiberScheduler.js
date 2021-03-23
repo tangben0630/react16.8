@@ -163,11 +163,15 @@ export type Thenable = {
 };
 
 const {ReactCurrentOwner} = ReactSharedInternals;
-
 let didWarnAboutStateTransition;
+//在createBatch中调用，但是createBatch并没有被调用，目前看来是没什么作用
+//
 let didWarnSetStateChildContext;
+//
 let warnAboutUpdateOnUnmounted;
+//
 let warnAboutInvalidUpdates;
+//
 
 if (enableSchedulerTracing) {
   // Provide explicit error message when production+profiling bundle of e.g. react-dom
@@ -1967,6 +1971,7 @@ function requestCurrentTime() {
 // requestWork is called by the scheduler whenever a root receives an update.
 // It's up to the renderer to call renderRoot at some point in the future.
 function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
+  //expirationTime 用来记录调度的过期时间
   addRootToSchedule(root, expirationTime);
   if (isRendering) {
     // Prevent reentrancy. Remaining work will be scheduled at the end of
@@ -1974,7 +1979,7 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     return;
   }
 
-  if (isBatchingUpdates) {
+  if (isBatchingUpdates) {//批量处理相关
     // Flush work at the end of the batch.
     if (isUnbatchingUpdates) {
       // ...unless we're inside unbatchedUpdates, in which case we should
@@ -1988,8 +1993,9 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
 
   // TODO: Get rid of Sync and use current time?
   if (expirationTime === Sync) {
-    performSyncWork();
+    performSyncWork();//调用同步代码
   } else {
+    //不是同步的话，进行异步调动
     scheduleCallbackWithExpirationTime(root, expirationTime);
   }
 }
@@ -2000,7 +2006,7 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   if (root.nextScheduledRoot === null) {
     // This root is not already scheduled. Add it.
     root.expirationTime = expirationTime;
-    if (lastScheduledRoot === null) {
+    if (lastScheduledRoot === null) {//是否有任务正在调度
       firstScheduledRoot = lastScheduledRoot = root;
       root.nextScheduledRoot = root;
     } else {
