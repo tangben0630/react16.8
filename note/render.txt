@@ -46,4 +46,24 @@
     2，判断是否批量更新
     3，根据 expirationTime 判断调度类型
 
+  reactScheduler:
+
+    1，模拟的是 浏览器 requestIdleCallback 的api，但是由于浏览器兼容性问题
+    2，维护时间片
+    3，等到浏览器有空闲的时候，执行逻辑
+    4，会有调度列表和超时的判断
+    5，requestIdleCallback 优先级较低
+    6，30帧是底线
+    7，必须留 11ms 给浏览器渲染动画
+    8，留给react自己渲染的时间只有22ms，
+
+    目的：react更新自己操作的时间不超过一个特定的时间
+
+
+
+
+
+
+
+
 

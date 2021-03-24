@@ -338,10 +338,12 @@ function unstable_scheduleCallback(callback, deprecated_options) {
   // by insertion. So the new callback is inserted any other callback with
   // equal expiration.
   if (firstCallbackNode === null) {
+    // firstCallbackNode 是react维护单向链表的头部，第一个
     // This is the first callback in the list.
     firstCallbackNode = newNode.next = newNode.previous = newNode;
     ensureHostCallbackIsScheduled();
   } else {
+    //链表有值
     var next = null;
     var node = firstCallbackNode;
     do {
