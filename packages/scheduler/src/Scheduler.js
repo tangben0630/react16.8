@@ -449,6 +449,7 @@ var requestAnimationFrameWithTimeout = function(callback) {
     callback(timestamp);
   });
   rAFTimeoutID = localSetTimeout(function() {
+    //防止 requestAnimation 太长时间没被调用
     // cancel the requestAnimationFrame
     localCancelAnimationFrame(rAFID);
     callback(getCurrentTime());

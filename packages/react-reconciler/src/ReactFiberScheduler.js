@@ -2049,6 +2049,7 @@ function findHighestPriorityRoot() {
             'caused by a bug in React. Please file an issue.',
         );
         if (root === root.nextScheduledRoot) {
+          // root 上面
           // This is the only root in the list.
           root.nextScheduledRoot = null;
           firstScheduledRoot = lastScheduledRoot = null;
