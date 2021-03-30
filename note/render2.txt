@@ -1,0 +1,9 @@
+react  render过程：
+
+  1，创建 ReactRoot
+  2，创建 FiberRoot 和 RootFiber
+  3，创建更新
+
+  1-1：创建完更新，准备调度
+      
+      reactDom：是什么？

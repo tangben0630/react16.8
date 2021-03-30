@@ -129,7 +129,7 @@ export function createFiberRoot(
       didError: false,
       //
       pendingCommitExpirationTime: NoWork,
-      //在一次渲染过程中，已经完成了的那个渲染任务
+      //在一次渲染过程中，已经完成了的那个渲染任务（当前优先级最高的那个任务 并且已经完成的）
       finishedWork: null,
       //记录一个超时的情况
       timeoutHandle: noTimeout,
