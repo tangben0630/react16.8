@@ -63,13 +63,13 @@ if (__DEV__) {
     currentlyProcessingQueue = null;
   };
 }
-
+//createUpdateQueue  创建更新列表
 export function createUpdateQueue<State>(baseState: State): UpdateQueue<State> {
   const queue: UpdateQueue<State> = {
-    baseState,
-    firstUpdate: null,
-    lastUpdate: null,
-    firstCapturedUpdate: null,
+    baseState,//每次更新完的数据
+    firstUpdate: null,//链表开头
+    lastUpdate: null,//链表结尾
+    firstCapturedUpdate: null,//报错时的链表开头
     lastCapturedUpdate: null,
     firstEffect: null,
     lastEffect: null,
@@ -108,6 +108,7 @@ export function createUpdate(expirationTime: ExpirationTime): Update<*> {
     expirationTime: expirationTime,
     //更新，或者强制更新，或者更新出错，制定更新的类型
     tag: UpdateState,
+    // tag 四种情况 更新，替换，强制更新，
     //实际执行操作的内容
     payload: null,
     callback: null,
@@ -122,22 +123,27 @@ function appendUpdateToQueue<State>(
   update: Update<State>,
 ) {
   // Append the update to the end of the list.
+  //如果最后一个是不存在的
   if (queue.lastUpdate === null) {
     // Queue is empty
+    //队列是空的,
     queue.firstUpdate = queue.lastUpdate = update;
   } else {
+    //队列不是空的,队列的最后一个赋值为
     queue.lastUpdate.next = update;
     queue.lastUpdate = update;
   }
 }
-
+//enqueueUpdate 创建或者更新 update 的一个过程
 export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   // Update queues are created lazily.
   const alternate = fiber.alternate;//
+  //alternate  是一个 current到workinprogress 的一个映射关系,保证他们的updatequeue是相同的
   let queue1;
   let queue2;
   if (alternate === null) {
     // There's only one fiber.
+    //初次渲染
     queue1 = fiber.updateQueue;
     queue2 = null;
     if (queue1 === null) {
@@ -145,10 +151,11 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
     }
   } else {
     // There are two owners.
+    //第二次渲染
     queue1 = fiber.updateQueue;
     queue2 = alternate.updateQueue;
     if (queue1 === null) {
-      if (queue2 === null) {
+      if (queue2 === null) {//本身节点没有产生过更新,没有updatequeue
         // Neither fiber has an update queue. Create new ones.
         queue1 = fiber.updateQueue = createUpdateQueue(fiber.memoizedState);
         queue2 = alternate.updateQueue = createUpdateQueue(
@@ -163,17 +170,16 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
         // Only one fiber has an update queue. Clone to create a new one.
         queue2 = alternate.updateQueue = cloneUpdateQueue(queue1);
       } else {
+        //以上两种情况,保证 首尾 有相同的queue
         // Both owners have an update queue.
       }
     }
   }
   if (queue2 === null || queue1 === queue2) {
-    // There's only a single queue.
+    // 两个队列 有一个是空的
     appendUpdateToQueue(queue1, update);
   } else {
-    // There are two queues. We need to append the update to both queues,
-    // while accounting for the persistent structure of the list — we don't
-    // want the same update to be added multiple times.
+    //这两个都不是空的
     if (queue1.lastUpdate === null || queue2.lastUpdate === null) {
       // One of the queues is not empty. We must add the update to both queues.
       appendUpdateToQueue(queue1, update);
@@ -184,24 +190,6 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
       appendUpdateToQueue(queue1, update);
       // But we still need to update the `lastUpdate` pointer of queue2.
       queue2.lastUpdate = update;
-    }
-  }
-
-  if (__DEV__) {
-    if (
-      fiber.tag === ClassComponent &&
-      (currentlyProcessingQueue === queue1 ||
-        (queue2 !== null && currentlyProcessingQueue === queue2)) &&
-      !didWarnUpdateInsideUpdate
-    ) {
-      warningWithoutStack(
-        false,
-        'An update (setState, replaceState, or forceUpdate) was scheduled ' +
-          'from inside an update function. Update functions should be pure, ' +
-          'with zero side-effects. Consider using componentDidUpdate or a ' +
-          'callback.',
-      );
-      didWarnUpdateInsideUpdate = true;
     }
   }
 }

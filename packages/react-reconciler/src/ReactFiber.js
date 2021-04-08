@@ -1,11 +1,3 @@
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow
- */
 
 import type {ReactElement, Source} from 'shared/ReactElementType';
 import type {ReactFragment, ReactPortal, RefObject} from 'shared/ReactTypes';
@@ -63,37 +55,7 @@ import {
 
 let hasBadMapPolyfill;
 
-if (__DEV__) {
-  hasBadMapPolyfill = false;
-  try {
-    const nonExtensibleObject = Object.preventExtensions({});
-    const testMap = new Map([[nonExtensibleObject, null]]);
-    const testSet = new Set([nonExtensibleObject]);
-    // This is necessary for Rollup to not consider these unused.
-    // https://github.com/rollup/rollup/issues/1771
-    // TODO: we can remove these if Rollup fixes the bug.
-    testMap.set(0, 0);
-    testSet.add(0);
-  } catch (e) {
-    // TODO: Consider warning about bad polyfills
-    hasBadMapPolyfill = true;
-  }
-}
-
-// A Fiber is work on a Component that needs to be done or was done. There can
-// be more than one per component.
 export type Fiber = {|
-  // These first fields are conceptually members of an Instance. This used to
-  // be split into a separate type and intersected with the other Fiber fields,
-  // but until Flow fixes its intersection bugs, we've merged them into a
-  // single type.
-
-  // An Instance is shared between all versions of a component. We can easily
-  // break this out into a separate object to avoid copying so much to the
-  // alternate versions of the tree. We put this on a single object for now to
-  // minimize the number of objects created during the initial render.
-
-  // Tag identifying the type of fiber.
   tag: WorkTag, //记录不同的元素类型
 
   // Unique identifier of this child.
@@ -140,13 +102,7 @@ export type Fiber = {|
   // A linked-list of contexts that this fiber depends on
   //
   firstContextDependency: ContextDependency<mixed> | null,
-
-  // Bitfield that describes properties about the fiber and its subtree. E.g.
-  // the ConcurrentMode flag indicates whether the subtree should be async-by-
-  // default. When a fiber is created, it inherits the mode of its
-  // parent. Additional flags can be set at creation time, but after that the
-  // value should remain unchanged throughout the fiber's lifetime, particularly
-  // before its child fibers are created.
+  
   //
   mode: TypeOfMode,
 
@@ -157,59 +113,27 @@ export type Fiber = {|
   // Singly linked list fast path to the next fiber with side-effects.
   //
   nextEffect: Fiber | null,
-
-  // The first and last fiber with side-effect within this subtree. This allows
-  // us to reuse a slice of the linked list when we reuse the work done within
-  // this fiber.
+  
   //
   firstEffect: Fiber | null,
   //
   lastEffect: Fiber | null,
-
-  // Represents a time in the future by which this work should be completed.
-  // Does not include work found in its subtree.
   //当前更新的过期时间
   expirationTime: ExpirationTime,
 
   // This is used to quickly determine if a subtree has no pending changes.
   //子节点的过期时间
   childExpirationTime: ExpirationTime,
-
-  // This is a pooled version of a Fiber. Every fiber that gets updated will
-  // eventually have a pair. There are cases when we can clean up pairs to save
-  // memory if we need to.
   //
   alternate: Fiber | null,
-
-  // Time spent rendering this Fiber and its descendants for the current update.
-  // This tells us how well the tree makes use of sCU for memoization.
-  // It is reset to 0 each time we render and only updated when we don't bailout.
-  // This field is only set when the enableProfilerTimer flag is enabled.
   //
   actualDuration?: number,
-
-  // If the Fiber is currently active in the "render" phase,
-  // This marks the time at which the work began.
-  // This field is only set when the enableProfilerTimer flag is enabled.
   //
   actualStartTime?: number,
-
-  // Duration of the most recent render time for this Fiber.
-  // This value is not updated when we bailout for memoization purposes.
-  // This field is only set when the enableProfilerTimer flag is enabled.
   //
   selfBaseDuration?: number,
-
-  // Sum of base times for all descedents of this Fiber.
-  // This value bubbles up during the "complete" phase.
-  // This field is only set when the enableProfilerTimer flag is enabled.
   //
   treeBaseDuration?: number,
-
-  // Conceptual aliases
-  // workInProgress : Fiber ->  alternate The alternate used for reuse happens
-  // to be the same as work in progress.
-  // __DEV__ only
   _debugID?: number,
   _debugSource?: Source | null,
   _debugOwner?: Fiber | null,
@@ -281,19 +205,6 @@ function FiberNode(
   }
 }
 
-// This is a constructor function, rather than a POJO constructor, still
-// please ensure we do the following:
-// 1) Nobody should add any instance methods on this. Instance methods can be
-//    more difficult to predict when they get optimized and they are almost
-//    never inlined properly in static compilers.
-// 2) Nobody should rely on `instanceof Fiber` for type testing. We should
-//    always know when it is a fiber.
-// 3) We might want to experiment with using numeric keys since they are easier
-//    to optimize in a non-JIT environment.
-// 4) We can easily go from a constructor to a createFiber object literal if that
-//    is faster.
-// 5) It should be easy to port this to a C struct and keep a C implementation
-//    compatible.
 const createFiber = function(
   tag: WorkTag,
   pendingProps: mixed,
@@ -340,11 +251,6 @@ export function createWorkInProgress(
 ): Fiber {
   let workInProgress = current.alternate;
   if (workInProgress === null) {
-    // We use a double buffering pooling technique because we know that we'll
-    // only ever need at most two versions of a tree. We pool the "other" unused
-    // node that we're free to reuse. This is lazily created to avoid allocating
-    // extra objects for things that are never updated. It also allow us to
-    // reclaim the extra memory if needed.
     workInProgress = createFiber(
       current.tag,
       pendingProps,
@@ -355,32 +261,16 @@ export function createWorkInProgress(
     workInProgress.type = current.type;
     workInProgress.stateNode = current.stateNode;
 
-    if (__DEV__) {
-      // DEV-only fields
-      workInProgress._debugID = current._debugID;
-      workInProgress._debugSource = current._debugSource;
-      workInProgress._debugOwner = current._debugOwner;
-    }
-
     workInProgress.alternate = current;
     current.alternate = workInProgress;
   } else {
     workInProgress.pendingProps = pendingProps;
-
-    // We already have an alternate.
-    // Reset the effect tag.
     workInProgress.effectTag = NoEffect;
-
-    // The effect list is no longer valid.
     workInProgress.nextEffect = null;
     workInProgress.firstEffect = null;
     workInProgress.lastEffect = null;
 
     if (enableProfilerTimer) {
-      // We intentionally reset, rather than copy, actualDuration & actualStartTime.
-      // This prevents time from endlessly accumulating in new commits.
-      // This has the downside of resetting values for different priority renders,
-      // But works for yielding (the common case) and should support resuming.
       workInProgress.actualDuration = 0;
       workInProgress.actualStartTime = -1;
     }
@@ -412,9 +302,6 @@ export function createHostRootFiber(isConcurrent: boolean): Fiber {
   let mode = isConcurrent ? ConcurrentMode | StrictMode : NoContext;
 
   if (enableProfilerTimer && isDevToolsPresent) {
-    // Always collect profile timings when DevTools are present.
-    // This enables DevTools to start capturing timing at any point–
-    // Without some nodes in the tree having empty base times.
     mode |= ProfileMode;
   }
 
@@ -571,18 +458,6 @@ function createFiberFromProfiler(
   expirationTime: ExpirationTime,
   key: null | string,
 ): Fiber {
-  if (__DEV__) {
-    if (
-      typeof pendingProps.id !== 'string' ||
-      typeof pendingProps.onRender !== 'function'
-    ) {
-      warningWithoutStack(
-        false,
-        'Profiler must specify an "id" string and "onRender" function as props',
-      );
-    }
-  }
-
   const fiber = createFiber(Profiler, pendingProps, key, mode | ProfileMode);
   // TODO: The Profiler fiber shouldn't have a type. It has a tag.
   fiber.elementType = REACT_PROFILER_TYPE;
@@ -669,17 +544,8 @@ export function assignFiberPropertiesInDEV(
   source: Fiber,
 ): Fiber {
   if (target === null) {
-    // This Fiber's initial properties will always be overwritten.
-    // We only use a Fiber to ensure the same hidden class so DEV isn't slow.
     target = createFiber(IndeterminateComponent, null, null, NoContext);
   }
-
-  // This is intentionally written as a list of all properties.
-  // We tried to use Object.assign() instead but this is called in
-  // the hottest path, and Object.assign() was too slow:
-  // https://github.com/facebook/react/issues/12502
-  // This code is DEV-only so size is not a concern.
-
   target.tag = source.tag;
   target.key = source.key;
   target.elementType = source.elementType;

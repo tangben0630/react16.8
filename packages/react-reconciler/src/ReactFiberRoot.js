@@ -34,7 +34,7 @@ type BaseFiberRootProperties = {|
   // Used only by persistent updates.
   pendingChildren: any,
   // The currently active root fiber. This is the mutable root of the tree.
-  current: Fiber,
+  current: Fiber, //对应 root 节点的 fiber对象
 
   // The following priority levels are used to distinguish between 1)
   // uncommitted work, 2) uncommitted work that is suspended, and 3) uncommitted
@@ -47,6 +47,10 @@ type BaseFiberRootProperties = {|
   // The earliest and latest priority levels that are not known to be suspended.
   earliestPendingTime: ExpirationTime,
   latestPendingTime: ExpirationTime,
+
+
+
+  
   // The latest priority level that was pinged by a resolved promise and can
   // be retried.
   latestPingedTime: ExpirationTime,

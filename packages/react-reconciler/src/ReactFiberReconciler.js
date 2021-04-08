@@ -1,11 +1,3 @@
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow
- */
 
 import type {Fiber} from './ReactFiber';
 import type {FiberRoot} from './ReactFiberRoot';
@@ -76,15 +68,7 @@ type DevToolsConfig = {|
   // This API is unfortunately RN-specific.
   // TODO: Change it to accept Fiber instead and type it properly.
   getInspectorDataForViewTag?: (tag: number) => Object,
-|};
-
-let didWarnAboutNestedUpdates;
-let didWarnAboutFindNodeInStrictMode;
-
-if (__DEV__) {
-  didWarnAboutNestedUpdates = false;
-  didWarnAboutFindNodeInStrictMode = {};
-}
+|}
 
 function getContextForSubtree(
   parentComponent: ?React$Component<any, any>,
@@ -109,31 +93,15 @@ function getContextForSubtree(
 function scheduleRootUpdate(
   current: Fiber,
   element: ReactNodeList,
-  expirationTime: ExpirationTime,
+  expirationTime: ExpirationTime,//对应这一次创建的更新的过期时间
   callback: ?Function,
 ) {
-  if (__DEV__) {
-    if (
-      ReactCurrentFiber.phase === 'render' &&
-      ReactCurrentFiber.current !== null &&
-      !didWarnAboutNestedUpdates
-    ) {
-      didWarnAboutNestedUpdates = true;
-      warningWithoutStack(
-        false,
-        'Render methods should be a pure function of props and state; ' +
-          'triggering nested component updates from render is not allowed. ' +
-          'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
-          'Check the render method of %s.',
-        getComponentName(ReactCurrentFiber.current.type) || 'Unknown',
-      );
-    }
-  }
-
   //update  用来标记 react 中需要更新的地点
   const update = createUpdate(expirationTime);
   // Caution: React DevTools currently depends on this property
   // being called "element".
+  //初次的payload 是指 element,也就是 reactnode
+  //如果是setstate() 就是对应setstate的第一个参数
   update.payload = {element};
 
   callback = callback === undefined ? null : callback;
@@ -147,7 +115,6 @@ function scheduleRootUpdate(
     update.callback = callback;
   }
   enqueueUpdate(current, update);
-
   scheduleWork(current, expirationTime);//按照需求调度，开始进行任务调度
   return expirationTime;
 }
@@ -160,27 +127,14 @@ export function updateContainerAtExpirationTime(
   callback: ?Function,
 ) {
   // TODO: If this is a nested container, this won't be the root.
+  //这个 container.current 对应的是一个fiber对象
   const current = container.current;
-
-  if (__DEV__) {
-    if (ReactFiberInstrumentation.debugTool) {
-      if (current.alternate === null) {
-        ReactFiberInstrumentation.debugTool.onMountContainer(container);
-      } else if (element === null) {
-        ReactFiberInstrumentation.debugTool.onUnmountContainer(container);
-      } else {
-        ReactFiberInstrumentation.debugTool.onUpdateContainer(container);
-      }
-    }
-  }
-
   const context = getContextForSubtree(parentComponent);
   if (container.context === null) {
     container.context = context;
   } else {
     container.pendingContext = context;
   }
-
   return scheduleRootUpdate(current, element, expirationTime, callback);
 }
 
@@ -208,60 +162,6 @@ function findHostInstanceWithWarning(
   component: Object,
   methodName: string,
 ): PublicInstance | null {
-  if (__DEV__) {
-    const fiber = ReactInstanceMap.get(component);
-    if (fiber === undefined) {
-      if (typeof component.render === 'function') {
-        invariant(false, 'Unable to find node on an unmounted component.');
-      } else {
-        invariant(
-          false,
-          'Argument appears to not be a ReactComponent. Keys: %s',
-          Object.keys(component),
-        );
-      }
-    }
-    const hostFiber = findCurrentHostFiber(fiber);
-    if (hostFiber === null) {
-      return null;
-    }
-    if (hostFiber.mode & StrictMode) {
-      const componentName = getComponentName(fiber.type) || 'Component';
-      if (!didWarnAboutFindNodeInStrictMode[componentName]) {
-        didWarnAboutFindNodeInStrictMode[componentName] = true;
-        if (fiber.mode & StrictMode) {
-          warningWithoutStack(
-            false,
-            '%s is deprecated in StrictMode. ' +
-              '%s was passed an instance of %s which is inside StrictMode. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
-            methodName,
-            methodName,
-            componentName,
-            getStackByFiberInDevAndProd(hostFiber),
-          );
-        } else {
-          warningWithoutStack(
-            false,
-            '%s is deprecated in StrictMode. ' +
-              '%s was passed an instance of %s which renders StrictMode children. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
-            methodName,
-            methodName,
-            componentName,
-            getStackByFiberInDevAndProd(hostFiber),
-          );
-        }
-      }
-    }
-    return hostFiber.stateNode;
-  }
   return findHostInstance(component);
 }
 

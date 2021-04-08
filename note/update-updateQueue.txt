@@ -1,0 +1,10 @@
+
+Update:
+
+  用来记录组件状态改变的
+
+  存放于 UpdateQueue 中
+
+  多个update可以同时存在
+
+  setstate 不是当时就更新的，而是几个或者多个一起更新
