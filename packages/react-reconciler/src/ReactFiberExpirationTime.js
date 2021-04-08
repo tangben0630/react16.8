@@ -1,11 +1,3 @@
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * @flow
- */
 
 import MAX_SIGNED_31_BIT_INT from './maxSigned31BitInt';
 
@@ -59,17 +51,6 @@ export function computeAsyncExpiration(
   );
 }
 
-// We intentionally set a higher expiration time for interactive updates in
-// dev than in production.
-//
-// If the main thread is being blocked so long that you hit the expiration,
-// it's a problem that could be solved with better scheduling.
-//
-// People will be more likely to notice this and fix it with the long
-// expiration time in development.
-//
-// In production we opt for better UX at the risk of masking scheduling
-// problems, by expiring fast.
 export const HIGH_PRIORITY_EXPIRATION = __DEV__ ? 500 : 150;
 export const HIGH_PRIORITY_BATCH_SIZE = 100;
 

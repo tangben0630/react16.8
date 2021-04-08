@@ -1,0 +1,45 @@
+react
+
+  把整个的更新流程,拆成一个个fiber对象,并且可控,可以记录更新到哪里,可以中断,
+  之前是不可以中断的,
+
+  三种情况会创建更新:
+
+    setState
+
+    ReactDom.render
+
+    forceUpdate
+
+    上面三种会触发更新   createUpdate   
+
+                                              一个应用可能多个root
+    1, createUpdate ====>> scheduleWork ====>> addRootToScheduler ===>> 
+
+    2, 如果正在render阶段,或者前后root不同 ====>> requestWork ====>> 
+
+    3, 如果是expiration Time sync 会执行 ====>> performSyncWork ===>> 不是sync 执行 scheduleCallbackWith
+
+    4, schedule流程:
+
+        async schedule work: 利用的是requestidlecallback,能让浏览器优先进行他更新的任务
+                              在每一帧有多余时间的时候,来调用react设置的callback,然后执行react的更新
+                              react会自己计时,在这个时间内,可以更新,在这个时间内,如果没有执行完
+                              react会把执行权交换给浏览器,让浏览器执行自己的事情
+
+                              react通过 requestAnimationFrame + 浏览器队列来实现,模拟 requestidlecallback
+
+            最终调用的是 performAsyncWork === 这里就是进入了 react的更新流程
+            react会遍历每一棵树的每一个单元进行更新操作, 通过 deadline 判断一下是否还有
+            js运行的时间片,每一个performAsyncWork是有一个时间限制的,默认 22ms,
+
+            对于同步任务,直接遍历树,完成更新
+
+    5, perform Work with deadline 
+        这种情况,直接调用 performWorkOnRoot,如果有 deadline,会判断deadline是否过期,
+        如果过期会回头继续进行异步的回调,
+        addRootToScheduler 在维护队列的更新
+        每次更新都会只更新一个当前优先级最高的任务
+        deadline可以帮忙跳出循环
+
+        低优先级的react的更新,不会阻塞浏览器的主体的更新
