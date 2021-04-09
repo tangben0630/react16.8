@@ -202,8 +202,12 @@ let rethrowOriginalError;
 
 function resetStack() {
   if (nextUnitOfWork !== null) {
+    //先判断执行到哪个节点的时候,下一个即将要更新的节点
+    //如果浏览器有时间,会回来继续执行这个work
     let interruptedWork = nextUnitOfWork.return;
     while (interruptedWork !== null) {
+      //向上寻找所有被打断的任务 work
+      //unwindInterruptedWork ===>> 退回更新
       unwindInterruptedWork(interruptedWork);
       interruptedWork = interruptedWork.return;
     }
@@ -1329,15 +1333,20 @@ function retrySuspendedRoot(
     requestWork(root, rootExpirationTime);
   }
 }
-
+//scheduleWorkToRoot   根本传入进来的fiber节点,向上寻找所对应的fiber对象
+//找的过程中也会进行一系列的操作
 function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
+  //这个方法是用来记录更新的时间的,调取的是一个时间的记录
   recordScheduleUpdate();
-
   // Update the source fiber's expiration time
+  // expirationTime ===>> 对应这一次创建的更新的过期时间
   if (
     fiber.expirationTime === NoWork ||
     fiber.expirationTime > expirationTime
   ) {
+    //更新完成之后,会把expirationTime去掉,
+    //如果fiber.expirationTime > 当前更新的 expirationTime  会把当前设置为优先级更高的
+    //更新原来的 expirationTime
     fiber.expirationTime = expirationTime;
   }
   let alternate = fiber.alternate;
@@ -1347,19 +1356,23 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
       alternate.expirationTime > expirationTime)
   ) {
     alternate.expirationTime = expirationTime;
+    //更新 alternate 的 expirationTime
   }
   // Walk the parent path to the root and update the child expiration time.
-  let node = fiber.return;
+  let node = fiber.return; //返回的是当前node的父级
   let root = null;
-  if (node === null && fiber.tag === HostRoot) {
+  if (node === null && fiber.tag === HostRoot) {//找到了根节点
     root = fiber.stateNode;
+    //stateNode 就是 fiberroot 对象
   } else {
     while (node !== null) {
       alternate = node.alternate;
       if (
         node.childExpirationTime === NoWork ||
+        //寻找子节点中 优先级最高的额 ExpirationTime
         node.childExpirationTime > expirationTime
       ) {
+        //就是在子节点中寻找优先级最高的,然后赋值了最新的 expirationTime
         node.childExpirationTime = expirationTime;
         if (
           alternate !== null &&
@@ -1367,6 +1380,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
             alternate.childExpirationTime > expirationTime)
         ) {
           alternate.childExpirationTime = expirationTime;
+          //alternate 也需要进行单独的更新
         }
       } else if (
         alternate !== null &&
@@ -1377,6 +1391,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
       }
       if (node.return === null && node.tag === HostRoot) {
         root = node.stateNode;
+        //stateNode 就是 fiberroot 对象
         break;
       }
       node = node.return;
@@ -1384,6 +1399,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   }
 
   if (root === null) {
+    // 没有fiber 节点
     return null;
   }
 
@@ -1437,23 +1453,24 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
   ) {
     // This is an interruption. (Used for performance tracking.)
     interruptedBy = fiber;
+    //新的高优先级的任务 打断了 老的 低优先级的任务
     resetStack();
   }
   markPendingPriorityLevel(root, expirationTime);
   if (
-    // If we're in the render phase, we don't need to schedule this root
-    // for an update, because we'll do it before we exit...
     !isWorking ||
     isCommitting ||
     // ...unless this is a different root than the one we're rendering.
     nextRoot !== root
   ) {
+    //如果没有正在工作,或者正在提交的
     const rootExpirationTime = root.expirationTime;
     requestWork(root, rootExpirationTime);
   }
   if (nestedUpdateCount > NESTED_UPDATE_LIMIT) {
     // Reset this back to zero so subsequent updates don't throw.
     nestedUpdateCount = 0;
+    //防止循环
     invariant(
       false,
       'Maximum update depth exceeded. This can happen when a ' +
@@ -1705,18 +1722,24 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
 function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   // Add the root to the schedule.
   // Check if this root is already part of the schedule.
+  //主要操控两个全局变量 
   if (root.nextScheduledRoot === null) {
+    //这是当前没有进行过调度 lastScheduledRoot firstScheduledRoot
+    //形成单向链表的数据结构
     // This root is not already scheduled. Add it.
     root.expirationTime = expirationTime;
     if (lastScheduledRoot === null) {//是否有任务正在调度
       firstScheduledRoot = lastScheduledRoot = root;
       root.nextScheduledRoot = root;
+
     } else {
       lastScheduledRoot.nextScheduledRoot = root;
       lastScheduledRoot = root;
+      //把当前插入 单向链表的最后一个
       lastScheduledRoot.nextScheduledRoot = firstScheduledRoot;
     }
   } else {
+    //当前已经进行过调度了
     // This root is already scheduled, but its priority may have increased.
     const remainingExpirationTime = root.expirationTime;
     if (
@@ -1724,6 +1747,7 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
       expirationTime < remainingExpirationTime
     ) {
       // Update the priority.
+      //把root.expirationTime 设置成为优先级最高的那个
       root.expirationTime = expirationTime;
     }
   }
