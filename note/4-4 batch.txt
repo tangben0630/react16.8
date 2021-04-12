@@ -1,0 +1,25 @@
+什么是批量更新 ?
+
+
+bachedUpdates
+
+
+// the reconciler.
+function batchedUpdates<A, R>(fn: (a: A) => R, a: A): R {
+  const previousIsBatchingUpdates = isBatchingUpdates;
+  isBatchingUpdates = true;
+  try {
+    return fn(a);
+  } finally {
+    isBatchingUpdates = previousIsBatchingUpdates;
+    if (!isBatchingUpdates && !isRendering) {
+      performSyncWork();
+    }
+  }
+}
+
+
+
+
+setState 本身的方法调用是同步的, 但是 state并不是立马更新的, 需要根据当前执行的上下文来判断,
+如果是处于批量更新的情况下, 不是立马更新的, 否则 是的

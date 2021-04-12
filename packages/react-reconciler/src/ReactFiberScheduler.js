@@ -1344,9 +1344,10 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
     fiber.expirationTime === NoWork ||
     fiber.expirationTime > expirationTime
   ) {
+    //fiber.expirationTime === NoWork 这个节点没有任何更新操作
     //更新完成之后,会把expirationTime去掉,
-    //如果fiber.expirationTime > 当前更新的 expirationTime  会把当前设置为优先级更高的
-    //更新原来的 expirationTime
+    //如果fiber.expirationTime > 当前更新的 expirationTime  会把当前设置为优先级更高的, 证明这个对象之前有更新
+    //,并且更新没有完成, 更新原来的 expirationTime
     fiber.expirationTime = expirationTime;
   }
   let alternate = fiber.alternate;
@@ -1451,7 +1452,10 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
     nextRenderExpirationTime !== NoWork &&
     expirationTime < nextRenderExpirationTime
   ) {
+    // isWorking 代表有任务正在进行, 可能被中断
+    // nextRenderExpirationTime !== NoWork 代表人物可能是个异步的任务 执行到了一半
     // This is an interruption. (Used for performance tracking.)
+    // expirationTime < nextRenderExpirationTime 代表新的任务的优先级高于目前正在做的任务
     interruptedBy = fiber;
     //新的高优先级的任务 打断了 老的 低优先级的任务
     resetStack();
@@ -1465,6 +1469,7 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
   ) {
     //如果没有正在工作,或者正在提交的
     const rootExpirationTime = root.expirationTime;
+    //获取当前的过期时间
     requestWork(root, rootExpirationTime);
   }
   if (nestedUpdateCount > NESTED_UPDATE_LIMIT) {
@@ -1714,7 +1719,7 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
   if (expirationTime === Sync) {
     performSyncWork();//调用同步代码
   } else {
-    //不是同步的话，进行异步调动
+    //不是同步的话，进行异步 调度
     scheduleCallbackWithExpirationTime(root, expirationTime);
   }
 }
@@ -1728,9 +1733,11 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
     //形成单向链表的数据结构
     // This root is not already scheduled. Add it.
     root.expirationTime = expirationTime;
+    //lastScheduledRoot 单向链表的结构  用来存储 root
     if (lastScheduledRoot === null) {//是否有任务正在调度
       firstScheduledRoot = lastScheduledRoot = root;
       root.nextScheduledRoot = root;
+      //如果只有一个root   root.nextScheduledRoot = root 等于自己
 
     } else {
       lastScheduledRoot.nextScheduledRoot = root;
@@ -2079,7 +2086,7 @@ function completeRoot(
 // When working on async work, the reconciler asks the renderer if it should
 // yield execution. For DOM, we implement this with requestIdleCallback.
 function shouldYield() {
-  if (deadlineDidExpire) {
+  if (deadlineDidExpire) {//是否超时
     return true;
   }
   if (
@@ -2091,7 +2098,7 @@ function shouldYield() {
     return false;
   }
   deadlineDidExpire = true;
-  return true;
+  return true;//规定时间已经用完了 需要跳出
 }
 
 function onUncaughtError(error: mixed) {

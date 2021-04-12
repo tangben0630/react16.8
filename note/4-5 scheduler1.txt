@@ -1,0 +1,21 @@
+
+维护时间片
+
+模拟 requestidlecallback
+
+调度列表和超时的判断
+
+
+
+1, 时间片的概念: 
+    1s 起码30帧  才可以流畅渲染一次需要 33ms
+    浏览器 11ms   react 22ms
+
+    因为js 是单线程  所以 如果 react 执行的时间太长  浏览器就没有时间来刷新自己的动画了
+
+    所以 react 推出  schedule 来控制 react的执行时间
+
+2, scheduleDeferredCallback()
+
+    
+    

@@ -43,3 +43,42 @@ react
         deadline可以帮忙跳出循环
 
         低优先级的react的更新,不会阻塞浏览器的主体的更新
+
+
+
+第二次更新流程:
+
+  setstate foucreupdate  Dom.render  都会产生更新
+    createUpdate ===>> 进入 scheduleWork ====> addRootToScheduler(在一个react中,
+    可能不止一个root节点, dom.render就会创建一个,调用多次,就会创建多个root节点,多个root纯在,需要维护)
+    ====>> requestWork (这里判断expirationTime 是不是异步,给出两种更新模式,两种情况,同步的时候,
+    performSyncWork,异步表示优先级不是很高:scheduleCallbackWith这里判断expirationTime) ===>>
+
+
+
+    整个异步的调度流程: schedule
+
+      大体是利用requestidlecallback能够优先更新浏览器自己的任务,在每一帧有空闲的时候,调用react设置的callback,react自己会计时
+      在这个时间内,react可以执行自己的work,如果这个时间内没有执行完,react需要把js的执行权,交还给浏览器,
+
+      通过 requestAnimationFrame+js队列
+
+      最终调用的是performAsyncWork, react会传给他一个 deadline, 通过deadline判断,当前任务是否还有js运行时间片(默认22ms)
+
+      判断expirationTime有没有超时,
+
+      找到 最终调用的performAsyncWork以后, 对一个节点进行更新,
+
+
+  整个异步的调度流程(2): schedule
+
+    1, 大体是利用requestidlecallback能够优先更新浏览器自己的任务,在每一帧有空闲的时候,调用react设置的callback,react自己会计时
+        在这个时间内,react可以执行自己的work,如果这个时间内没有执行完,react需要把js的执行权,交还给浏览器,
+
+    2, 调用scheduleDeieneCallback  有个callbackList 这里的任务 有个 expirationTime , 判断他是否超时
+
+    3, 调用的是performAsyncWork , react会传给他一个 deadline , 遍历每个单元 更新
+        通过deadline判断,当前任务是否还有js运行时间片(默认22ms), 如果超时 
+
+    4, deadline 跳出后 直接回到原来 把js 执行权 交给浏览器
+
