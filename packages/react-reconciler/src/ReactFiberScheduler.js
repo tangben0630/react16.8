@@ -903,6 +903,7 @@ function renderRoot(
     resetStack();
     nextRoot = root;
     nextRenderExpirationTime = expirationTime;
+    // nextUnitOfWork 是一个 fiber 对象, 对应的是 RootFiber 而不是 FiberRoot
     nextUnitOfWork = createWorkInProgress(
       nextRoot.current,
       null,
@@ -1764,6 +1765,7 @@ function findHighestPriorityRoot() {
   let highestPriorityWork = NoWork;
   let highestPriorityRoot = null;
   if (lastScheduledRoot !== null) {
+    //lastScheduledRoot == null 证明链表已经到头了
     let previousScheduledRoot = lastScheduledRoot;
     let root = firstScheduledRoot;
     while (root !== null) {
@@ -1788,9 +1790,14 @@ function findHighestPriorityRoot() {
         } else if (root === firstScheduledRoot) {
           // This is the first root in the list.
           const next = root.nextScheduledRoot;
+          //获取当前的next
           firstScheduledRoot = next;
+          //把当前表头 赋值为 下一个的root        
           lastScheduledRoot.nextScheduledRoot = next;
+          //最后一个 root 的下一个 赋值为当前的 root  为什么? 目前不知道
           root.nextScheduledRoot = null;
+          //之前的被删除了  目前 root.nextScheduledRoot 这个指针不需要了
+
         } else if (root === lastScheduledRoot) {
           // This is the last root in the list.
           lastScheduledRoot = previousScheduledRoot;
@@ -1798,6 +1805,7 @@ function findHighestPriorityRoot() {
           root.nextScheduledRoot = null;
           break;
         } else {
+          //单向链表中  把一个节点移除的操作
           previousScheduledRoot.nextScheduledRoot = root.nextScheduledRoot;
           root.nextScheduledRoot = null;
         }
@@ -1830,6 +1838,8 @@ function findHighestPriorityRoot() {
 }
 
 function performAsyncWork(dl) {
+  //3, 调用的是performAsyncWork , react会传给他一个 deadline , 遍历每个单元 更新
+  //   通过deadline判断,当前任务是否还有js运行时间片(默认22ms), 如果超时 
   if (dl.didTimeout) {
     // The callback timed out. That means at least one update has expired.
     // Iterate through the root schedule. If they contain expired work, set
@@ -1841,11 +1851,13 @@ function performAsyncWork(dl) {
       let root: FiberRoot = firstScheduledRoot;
       do {
         didExpireAtExpirationTime(root, currentRendererTime);
+        //标记在root节点上的变量 didExpireAtExpirationTime
         // The root schedule is circular, so this is never null.
         root = (root.nextScheduledRoot: any);
       } while (root !== firstScheduledRoot);
     }
   }
+  //NoWork 没有任务的情况  -1
   performWork(NoWork, dl);
 }
 
@@ -1861,6 +1873,8 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
   findHighestPriorityRoot();
 
   if (deadline !== null) {
+    //这个就是异步调用的时候 
+    //首先重新计算一个 rendertime
     recomputeCurrentRendererTime();
     currentSchedulerTime = currentRendererTime;
 
@@ -1876,24 +1890,33 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
       (minExpirationTime === NoWork ||
         minExpirationTime >= nextFlushedExpirationTime) &&
       (!deadlineDidExpire || currentRendererTime >= nextFlushedExpirationTime)
+      //!deadlineDidExpire || currentRendererTime >= nextFlushedExpirationTime
+      //时间片还有时间 或者 任务已经过期, 需要被强制输出
+      //便会执行 performWorkOnRoot
     ) {
       performWorkOnRoot(
         nextFlushedRoot,
         nextFlushedExpirationTime,
         currentRendererTime >= nextFlushedExpirationTime,
+        //currentRendererTime >= nextFlushedExpirationTime
+        //如果过期 true ,  没有过期 传入的是 false
       );
       findHighestPriorityRoot();
       recomputeCurrentRendererTime();
       currentSchedulerTime = currentRendererTime;
     }
   } else {
+    //进入同步调度
     while (
       nextFlushedRoot !== null &&
-      nextFlushedExpirationTime !== NoWork &&
+      nextFlushedExpirationTime !== NoWork &&//目前没有任务要进行
       (minExpirationTime === NoWork ||
-        minExpirationTime >= nextFlushedExpirationTime)
+        minExpirationTime >= nextFlushedExpirationTime)//
+        //只会执行同步任务的更新
     ) {
       performWorkOnRoot(nextFlushedRoot, nextFlushedExpirationTime, true);
+      //对应的同步任务会被执行掉, 执行的过程中会把rootExpirationTime置空
+      //findHighestPriorityRoot() 找到下一个有优先级任务
       findHighestPriorityRoot();
     }
   }
@@ -1968,7 +1991,7 @@ function finishRendering() {
 function performWorkOnRoot(
   root: FiberRoot,
   expirationTime: ExpirationTime,
-  isExpired: boolean,
+  isExpired: boolean,//是否过期
 ) {
   invariant(
     !isRendering,
@@ -1984,10 +2007,11 @@ function performWorkOnRoot(
     // TODO: Non-yieldy work does not necessarily imply expired work. A renderer
     // may want to perform some work without yielding, but also without
     // requiring the root to complete (by triggering placeholders).
-
+    // 同步更新, 强制
     let finishedWork = root.finishedWork;
     if (finishedWork !== null) {
       // This root is already complete. We can commit it.
+      //如果有已经完成的任务 需要提交
       completeRoot(root, finishedWork, expirationTime);
     } else {
       root.finishedWork = null;
@@ -2024,12 +2048,13 @@ function performWorkOnRoot(
         cancelTimeout(timeoutHandle);
       }
       const isYieldy = true;
+      //isYieldy 这个任务是可以被中断的
       renderRoot(root, isYieldy, isExpired);
       finishedWork = root.finishedWork;
       if (finishedWork !== null) {
         // We've completed the root. Check the deadline one more time
         // before committing.
-        if (!shouldYield()) {
+        if (!shouldYield()) {  
           // Still time left. Commit the root.
           completeRoot(root, finishedWork, expirationTime);
         } else {

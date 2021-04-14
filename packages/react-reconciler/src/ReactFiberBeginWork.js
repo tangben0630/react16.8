@@ -136,6 +136,7 @@ export function reconcileChildren(
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
     // we can optimize this reconciliation pass by not tracking side-effects.
+    // 第一次渲染, 传入的是 null
     workInProgress.child = mountChildFibers(
       workInProgress,
       null,
@@ -149,6 +150,7 @@ export function reconcileChildren(
 
     // If we had any progressed work already, that is invalid at this point so
     // let's throw it out.
+    // 后面的渲染, 就有了子节点
     workInProgress.child = reconcileChildFibers(
       workInProgress,
       current.child,
@@ -339,7 +341,7 @@ function updateFragment(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
-  const nextChildren = workInProgress.pendingProps;
+  const nextChildren = workInProgress.pendingProps; //pendingProps 就是 其他组件的 pendingProps.children
   reconcileChildren(
     current,
     workInProgress,
@@ -413,20 +415,27 @@ function updateFunctionComponent(
     ReactCurrentFiber.setCurrentPhase(null);
   } else {
     nextChildren = Component(nextProps, context);
+    //这里渲染出来的额就是  react.FC  return出来的 div 
   }
-
+  
   // React DevTools reads this flag.
   workInProgress.effectTag |= PerformedWork;
+  //reconcileChildren 把 nextChildren 变成fiber对象
+  //返回的是 reactEle  所以调用 reconcileChildren 把 nextChildren 变成fiber对象
+  //变成 fiber对象后, 才能处理这些节点对他进行更新
+  //如果是dom节点  还需要创建真正的额dom节点的实例  最后挂载到dom 上面 显示在页面上面
   reconcileChildren(
     current,
     workInProgress,
     nextChildren,
     renderExpirationTime,
   );
+  // workInProgress挂载上child这个属性
+  //说明在reconcileChildren的时候  最终在当前的fiber对象上面挂载上这个 child这个属性
   return workInProgress.child;
 }
 
-function updateClassComponent(
+function updateClassComponent(//更新类组件的过程
   current: Fiber | null,
   workInProgress: Fiber,
   Component: any,
@@ -446,6 +455,7 @@ function updateClassComponent(
   prepareToReadContext(workInProgress, renderExpirationTime);
 
   const instance = workInProgress.stateNode;
+  //instance 是通过new ClassComponent获取的对象
   let shouldUpdate;
   if (instance === null) {
     if (current !== null) { //第一次渲染 current 还不存在
@@ -511,6 +521,7 @@ function finishClassComponent(
   markRef(current, workInProgress);
 
   const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect;
+  //workInProgress.effectTag 是否有 DidCapture 这个 effectTag 没有的话  返回  NoEffect
 
   if (!shouldUpdate && !didCaptureError) {
     // Context providers should defer to sCU for rendering
@@ -1470,10 +1481,14 @@ function bailoutOnAlreadyFinishedWork(
 
   // Check if the children have any pending work.
   const childExpirationTime = workInProgress.childExpirationTime;
+  //
   if (
+    //子树上面也没有更新, 或者说更新的优先级不够
     childExpirationTime === NoWork ||
     childExpirationTime > renderExpirationTime
   ) {
+    // 目的是跳过子树的判断 , 如果没有 childExpirationTime
+    // 还是需要遍历一遍子节点 看看更新
     // The children don't have any work either. We can skip them.
     // TODO: Once we add back resuming, we should check if the children are
     // a work-in-progress set. If so, we need to transfer their effects.
@@ -1481,9 +1496,12 @@ function bailoutOnAlreadyFinishedWork(
   } else {
     // This fiber doesn't have work, but its subtree does. Clone the child
     // fibers and continue.
+    //copy老的节点
     cloneChildFibers(current, workInProgress);
     return workInProgress.child;
   }
+
+
 }
 
 function beginWork(
@@ -1492,14 +1510,18 @@ function beginWork(
   renderExpirationTime: ExpirationTime,
 ): Fiber | null {
   const updateExpirationTime = workInProgress.expirationTime;
-
+  //这边的 expirationTime 是 fiber 节点上的
   if (current !== null) {
+    //第一次渲染current是有值的 , 后面是没有值的
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
     if (
       oldProps === newProps &&
+      //先后两次的 props 是一样的
       !hasLegacyContextChanged() &&
+      //updateExpirationTime === NoWork 并且没有更新
       (updateExpirationTime === NoWork ||
+        //或者说你有更新 但是优先级不高
         updateExpirationTime > renderExpirationTime)
     ) {
       // This fiber does not have any pending work. Bailout without entering
@@ -1610,6 +1632,7 @@ function beginWork(
       );
     }
     case FunctionComponent: {
+      // type属性存储的就是组件的类型
       const Component = workInProgress.type;
       const unresolvedProps = workInProgress.pendingProps;
       const resolvedProps =

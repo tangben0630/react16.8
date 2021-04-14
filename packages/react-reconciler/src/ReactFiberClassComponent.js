@@ -558,7 +558,7 @@ function constructClassInstance(
     }
   }
 
-  const instance = new ctor(props, context);
+  const instance = new ctor(props, context); // new contructor
   const state = (workInProgress.memoizedState =
     instance.state !== null && instance.state !== undefined
       ? instance.state
@@ -781,6 +781,7 @@ function mountClassInstance(
   }
 
   let updateQueue = workInProgress.updateQueue;
+  //初次渲染的 updateQueue 是空的  但是 setstate后里面有多个update
   if (updateQueue !== null) {
     processUpdateQueue(
       workInProgress,

@@ -1,0 +1,4 @@
+pendingProps
+
+  新的一次渲染产生的props
+  workInProgress: 当前的额fiber对象
