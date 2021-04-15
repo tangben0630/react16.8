@@ -1,0 +1,14 @@
+
+
+1, 创建更新的方式  三种
+
+  ReactDom.render
+
+  setState
+
+  forceUpdate
+
+
+  创建 ReactRoot , 
+        FiberRoot , 
+        RootFiber

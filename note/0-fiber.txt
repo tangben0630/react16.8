@@ -1,0 +1,20 @@
+react 新架构: fiber
+
+  1, 理念: 
+
+  2, 利用袋鼠效应 获得 异步 可中断的执行更新
+
+      fiber 纤层
+
+  
+fiber的工作原理:
+
+  fiber: 基于fiber节点实现 , 每个fiber节点对应一个组件
+          保存了该节点的类型 对应的dom节点 ===> vnode
+
+  App组件
+
+    FiberRootNode: 根节点
+    RootFiber: 每个应用都有自己的跟fiber节点, 一个页面中可以有多个
+                RootFiber, 但是只有一个 FiberRootNode
+    

@@ -345,6 +345,7 @@ function getReactRootElementInContainer(container: any) {
 }
 
 function shouldHydrateDueToLegacyHeuristic(container) {
+  //container 有值的话  rootElement 是有值的
   const rootElement = getReactRootElementInContainer(container);
   return !!(
     rootElement &&
@@ -380,9 +381,10 @@ function legacyCreateRootFromDOMContainer(
 
 function legacyRenderSubtreeIntoContainer(
   parentComponent: ?React$Component<any, any>,//第一个是 null
-  children: ReactNodeList, //
+  children: ReactNodeList, // element
   container: DOMContainer,//容器
-  forceHydrate: boolean,//false
+  forceHydrate: boolean,//false  用来决定是否会调和原来存在于container里面的dom节点
+  //是否需要复用这些节点
   callback: ?Function,//
 ) {
   // TODO: Ensure all entry points contain this check
@@ -479,14 +481,14 @@ const ReactDOM: Object = {
   },
 
   render(
-    element: React$Element<any>,
+    element: React$Element<any>, 
     container: DOMContainer, //容器，就是我们要挂载到哪个dom节点上面
-    callback: ?Function,
+    callback: ?Function, //渲染结束后 会调用这个callback
   ) {
     return legacyRenderSubtreeIntoContainer(
       null,
       element,
-      container,
+      container,//挂载的那个dom节点
       false,
       callback,
     );
