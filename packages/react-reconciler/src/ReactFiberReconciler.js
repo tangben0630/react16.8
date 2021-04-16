@@ -114,7 +114,8 @@ function scheduleRootUpdate(
     );
     update.callback = callback;
   }
-  enqueueUpdate(current, update);
+  enqueueUpdate(current, update);//把update 加入到对应的队列里面
+  
   scheduleWork(current, expirationTime);//按照需求调度，开始进行任务调度
   return expirationTime;
 }

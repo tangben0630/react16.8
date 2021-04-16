@@ -340,6 +340,8 @@ function getReactRootElementInContainer(container: any) {
   if (container.nodeType === DOCUMENT_NODE) {
     return container.documentElement;
   } else {
+    //不是 DOCUMENT_NODE     return container.firstChild
+    //通过判断container.firstChild 是不是有子节点 来判断 是否需要调和
     return container.firstChild;
   }
 }
@@ -363,14 +365,17 @@ ReactGenericBatching.setBatchingImplementation(
 
 function legacyCreateRootFromDOMContainer(
   container: DOMContainer,
-  forceHydrate: boolean, //一个 boolean 是否调和原来存在的dom 节点，在服务端渲染时候用 
+  forceHydrate: boolean, //一个 boolean 是否调和原来container存在的dom 节点，在服务端渲染时候用 
 ): Root {
   const shouldHydrate =
+  //shouldHydrateDueToLegacyHeuristic 通过判断 container 是否存在, 判断节点是否是 document_node
     forceHydrate || shouldHydrateDueToLegacyHeuristic(container);
   // First clear any existing content.
   if (!shouldHydrate) {
+    //这是客户端
     let rootSibling;
     while ((rootSibling = container.lastChild)) {
+      //删除 container 所有子节点, 不需要合并子节点
       container.removeChild(rootSibling);
     }
   }
@@ -396,7 +401,7 @@ function legacyRenderSubtreeIntoContainer(
   // 从dom节点上面获取 root，第一次渲染，是不存在的
   let root: Root = (container._reactRootContainer: any);
   if (!root) {
-    // 初次，不存在 root
+    // 初次，不存在 root, 通过legacyCreateRootFromDOMContainer 创建一个 reactroot
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
       container,
       forceHydrate, //false  ssr 为 true

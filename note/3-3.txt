@@ -1,0 +1,50 @@
+
+什么是Fiber:
+
+
+1, 每一个 ReactRlement 都对应一个 fiber 对象
+
+2, 记录节点的各种状态
+
+3, 串联整个应用
+
+ {
+    App: { App ReactElement ==> 对应的fiber 就是 RootFiber 的child
+      div: {  1, div 是App的child  div的propsChildren 是一个数组, 数组的第一个节点
+              2, 会作为他的child属性他的fiber对象指向input组件的fiber对象
+              3, 但是list虽然也是div的子节点, 但是只会作为input的sibling
+              4, 所以每一个节点只会存第一个子节点
+        children: [
+          {
+            input: { 1, 对于input来说, child就是inputEle
+              child: inputEle,
+              sibling: list: {
+                span: {}, 
+                span: {}, 
+                span: {}, 
+                span: {}, 
+              }
+            },
+          }
+        ]
+      }
+    }
+ }
+
+FiberRoot: {
+  current: RootFiber,
+}
+ Fiber: {
+   return: ,
+   child: ,
+   sibling: ,
+   updateQueue: [],
+   expirationTime: 当前节点任务的过期时间,
+   childexpirationTime: 子节点的过期时间,
+   alternate: current 跟 workInProgress 的对应关系, 在每次更新过程中, 会把整个fiber对象
+              根据这个fiber对象创建一个 workInProgress 对象, current是当前的 workInProgress
+              就是要进行更新的, 完成后 workInProgress 会更新成新的, current是老的, 在页面
+              渲染完成之后, workInProgress会变成current(下一次更新进来之后, 会把current
+              复制到workInProgress上面 两个进行互换, 而不是重新创建 workInProgress), 
+              ------传说中的 双缓存
+ }
