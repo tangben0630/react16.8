@@ -82,3 +82,37 @@
 
 
     创建更新的过程
+
+
+第四次:
+
+  创建完更新到实际调度的过程:
+
+  FiberRoot是什么东西?
+
+    整个应用的起点
+
+    包含应用挂载的目标节点
+
+    记录整个应用更新过程的各种信息
+
+
+    FiberRoot 本质就是一个对象
+
+    FiberRoot: {
+      containerInfo: root 节点, render方法接收的第二个参数
+      pendingChildren: 只有在持久更新中会用到, 也就是不支持批量更新的平台, react-dom不会用到
+      current: 当前应用对应的Fiber对象, Root Fiber
+                const uninitializedFiber = createHostRootFiber(isConcurrent);
+
+      earliestPendingTime: NoWork,
+      latestPendingTime: NoWork,
+      earliestSuspendedTime: NoWork,
+      latestSuspendedTime: NoWork,
+      latestPingedTime: NoWork,
+
+      finishedWork: 再一次渲染中已经完成了的更新的任务(优先级比较高)
+      expirationTime: 调度的
+    }
+
+
