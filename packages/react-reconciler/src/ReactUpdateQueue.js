@@ -177,6 +177,7 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   }
   if (queue2 === null || queue1 === queue2) {
     // 两个队列 有一个是空的
+    //第一次渲染 queue2 === null
     appendUpdateToQueue(queue1, update);
   } else {
     //这两个都不是空的
@@ -187,6 +188,7 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
     } else {
       // Both queues are non-empty. The last update is the same in both lists,
       // because of structural sharing. So, only append to one of the lists.
+      // 两个都不是空的, 指向的东西是一样的, 
       appendUpdateToQueue(queue1, update);
       // But we still need to update the `lastUpdate` pointer of queue2.
       queue2.lastUpdate = update;

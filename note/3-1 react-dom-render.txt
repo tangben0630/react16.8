@@ -113,6 +113,94 @@
 
       finishedWork: 再一次渲染中已经完成了的更新的任务(优先级比较高)
       expirationTime: 调度的
+      nextExpirationTimeToWorkOn: 标记我们这一次更新渲染的时候, 我们要执行的是哪一个优先级的任务
+                                  应用的更新过程中, 会遍历到每一个节点, 每一个节点如果有更新
+                                  他会有自己expirationTime, root上面会记录优先级最高的那个
+                                  expirationTime, 更新时候会依据nextExpirationTimeToWorkOn
+                                  找到对应的节点, 遍历到某个节点, 发现优先级很高, 就会跳过当前
+                                  这个节点
     }
+
+  3.3
+
+
+    Fiber是什么东西?
+
+      每一个ReactElement都对应一个Fiber
+
+      记录节点的各种状态 (state, props)
+
+      串联整个应用形成树结构
+
+      Fiber: {
+              //首先, FiberRoot有一个current属性, 这个属性指向Fiber对象
+              //这个对象被称为 RootFiber
+              //FiberRoot在 reactDom.render()的时候, 接收了一个 App这个 ReactElement
+              //App这个 ReactElement对应的Fiber对象, 就是RootFiber的child, 
+              //App的child  就是 div
+        child, renturn出来的第一个子节点
+        sibling,
+        return, //都会指向父节点 , 不管是第一个节点 还是 sibling 都会指向父节点,
+        tag: workTag, 标记不同的组件类型
+        key,
+        stateNode: 节点的一个实际的实例,
+        updateQueue: 如果节点创建了更新  就会存在这个地方
+        memoizedState: 上次渲染完成之后的 state
+        alternate:  // current <==> workInProgress 的对应关系
+                    // 在每一次更新的过程中,我们会把当前猪整个fiber对象区创建一个
+                    // workInProgress对象, current是当前的, workInProgress是我们
+                    // 将要进行更新的, 再更新完成之后, workInProgress 的状态会更新
+                    // current是旧的, 最终页面渲染之后, workInProgress变成 current
+                    // 等到下一次更新的时候, 会把 workInProgress 和 current 交换
+                    // 因为创建对象开销比较大, 所以一直保存两个对象都存在 双缓存
+      }
+
+  
+3.4
+
+  Update & updateQueue
+
+  什么是Update
+
+    用于记录组件状态的改变
+
+    存放于UpdateQueue中
+
+    多个 Update 可以同时存在
+
+    Update: {
+      expirationTime: , createUpdate的时候传入的expirationTime的过期的时间
+
+      tag: 1,2,3,4,  //更新, 替代, 强制更新, 
+
+      payload: ,//初次渲染 是 Element, 如果是 setState 就是传入的第一个参数
+
+      callback: ,
+
+      next: ,下一个update, update是存放在updateQueue里面  一个单向链表
+
+      nextEffect:, 
+    }
+
+    UpdateQueue: {
+      
+      baseState: state, 上一次渲染结束的 state
+
+      firstUpdate: ,表头
+
+      lastUpdate: ,表尾
+    }
+
+3.5
+
+  计算 expirationTime
+
+    expirationTime: 过期时间
+    
+
+
+
+
+
 
 
