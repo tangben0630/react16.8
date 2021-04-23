@@ -196,6 +196,13 @@
   计算 expirationTime
 
     expirationTime: 过期时间
+
+
+3.6 不同的 expirationTime
+
+  如果过了expirationTime, 任务还没被执行, 就会强制执行
+
+  异步:  优先级高的异步  优先级低的异步
     
 
 

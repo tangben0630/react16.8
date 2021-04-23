@@ -1314,9 +1314,7 @@ function retrySuspendedRoot(
 
   scheduleWorkToRoot(boundaryFiber, retryTime);
   if ((boundaryFiber.mode & ConcurrentMode) === NoContext) {
-    // Outside of concurrent mode, we must schedule an update on the source
-    // fiber, too, since it already committed in an inconsistent state and
-    // therefore does not have any pending work.
+    //记录更新流程中的时间的 scheduleWorkToRoot
     scheduleWorkToRoot(sourceFiber, retryTime);
     const sourceTag = sourceFiber.tag;
     if (sourceTag === ClassComponent && sourceFiber.stateNode !== null) {
@@ -1367,7 +1365,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
     root = fiber.stateNode;
     //stateNode 就是 fiberroot 对象
   } else {
-    while (node !== null) {
+    while (node !== null) { //node === null    只有RootFiber.return才会是null, 其他都不是
       alternate = node.alternate;
       if (
         node.childExpirationTime === NoWork ||
@@ -1443,6 +1441,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
 }
 
 function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
+  //根据Fiber节点向上寻找对应的fiber对象, 
   const root = scheduleWorkToRoot(fiber, expirationTime);
   if (root === null) {
     return;
