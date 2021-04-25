@@ -17,6 +17,15 @@
 
     5, 判断是否正在render阶段或者前后root不同 
         Y ---> requestWork
+                加入到root调度队列
+                判断是否批量更新
+                根据expirationTime判断调度类型
+
+                scheduleCallbackWithExpirationTime: 实现类似于 requestidlecallback 的功能
+                让我们能够在浏览器空闲的情况下, 去执行一下不是特别重要的任务, 给我们设置一个deadline
+                这个时间前可以执行, 在这个时间后, 必须执行权交换浏览器, 等浏览器再有空再执行
+
+                
 
     6, 判断 expirationTime 是否是 Sync
         Y ---> performSyncWork
