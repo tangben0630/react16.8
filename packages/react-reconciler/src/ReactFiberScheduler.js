@@ -1573,10 +1573,13 @@ function scheduleCallbackWithExpirationTime(
   root: FiberRoot,
   expirationTime: ExpirationTime,
 ) {
-  //callbackExpirationTime 之前是否有callback在执行
+  // callbackExpirationTime 之前是否有callback在执行
+  // callbackExpirationTime 上一次调用的方法返回去申请了一个callback, 这个callback也有一个 expirationTime
+  // callbackExpirationTime !== NoWork 代表已经有一个callback在执行了
   if (callbackExpirationTime !== NoWork) {
     // A callback is already scheduled. Check its expiration time (timeout).
     if (expirationTime > callbackExpirationTime) {
+      //判断当前的 expirationTime 是不是比之前的大
       // Existing callback has sufficient timeout. Exit.
       return;
     } else {
@@ -1593,9 +1596,9 @@ function scheduleCallbackWithExpirationTime(
 
   callbackExpirationTime = expirationTime;
   //originalStartTimeMs ===>> react代码加载进来立马获取的一个时间
-  const currentMs = now() - originalStartTimeMs;
-  const expirationTimeMs = expirationTimeToMs(expirationTime);
-  const timeout = expirationTimeMs - currentMs;
+  const currentMs = now() - originalStartTimeMs; //从刚进js到现在的时间
+  const expirationTimeMs = expirationTimeToMs(expirationTime);//算出将来的时间
+  const timeout = expirationTimeMs - currentMs;//多长时间过期
   callbackID = scheduleDeferredCallback(performAsyncWork, {timeout});
 }
 

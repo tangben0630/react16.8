@@ -11,19 +11,41 @@
         如果符合条件重置stack
         如果符合条件就请求工作调度
 
+          scheduleWork(fiber, expirationTime) 这个函数做了什么 ?
+            1, 调用 scheduleWorkToRoot(fiber, expirationTime) 
+                1, 记录更新时间
+                2, 根据传入的fiber节点向上寻找相关对应的RootFiber对象
+                3, 如果之前没设置过更新, 或者之前的更新的优先级低于现在的更新, 更新fiber的优先级
+                4, 更新所有子树的 expirationTime
+            2, 如果没有任务正在进行, 并且任务是有的, 可能是个异步或者更新到了一半 
+                新的高优先级的任务打断了旧的任务, resetStack()
+            3, markPendingPriorityLevel()
+            4, 如果没有正在工作, 说明上次工作结束了, 或者正在提交
+            5, 符合条件调用 requestWork
+
 
     4, addRootToScheduleWork 
         reactDom.render就会创建一个root节点, 多次调用会创建多个root节点, 都有独立的update
 
     5, 判断是否正在render阶段或者前后root不同 
         Y ---> requestWork
+                1, addRootToSchedule(root, expirationTime) 
+                  把当前root插入到队尾单向链表的操作
+                2, 同步调用 performSyncWork() 异步调用 scheduleCallbackWithExpirationTime()
+
                 加入到root调度队列
                 判断是否批量更新
                 根据expirationTime判断调度类型
 
-                scheduleCallbackWithExpirationTime: 实现类似于 requestidlecallback 的功能
-                让我们能够在浏览器空闲的情况下, 去执行一下不是特别重要的任务, 给我们设置一个deadline
-                这个时间前可以执行, 在这个时间后, 必须执行权交换浏览器, 等浏览器再有空再执行
+                scheduleCallbackWithExpirationTime: 
+                  实现类似于 requestidlecallback 的功能
+                  让我们能够在浏览器空闲的情况下, 去执行一下不是特别重要的任务, 给我们设置一个deadline
+                  这个时间前可以执行, 在这个时间后, 必须执行权交换浏览器, 等浏览器再有空再执行
+                scheduleCallbackWithExpirationTime(root, expirationTime)
+
+        BatchingUpdates: 批量更新
+
+
 
                 
 
@@ -38,6 +60,10 @@
           先执行
 
           performSyncWork 是浏览器的一个callback
+
+          时间片的概念: 30帧 --> 流畅
+            schedule设计的目的就是为了保证react去执行更新的时间, 在浏览器的每一帧里面不超过一个特定的时间,
+            希望留给浏览器去刷新动画或者是响应用户输入的反馈的时候, 每一帧都有足够的时间
 
 
     
