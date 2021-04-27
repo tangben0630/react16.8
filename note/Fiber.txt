@@ -1,8 +1,0 @@
-Fiber是什么？
-
-1，每一个 ReactElement 对应一个Fiber对象
-2，记录节点各种状态 类似props、state 都是记录在fiber上面的，更新才会更新到this里面
-    所以当 函数组件没有 this的时候，也不要紧，因为 状态是记录在fiber上面的
-3，串联整个应用形成树结构
-    App 通过 render 返回 children 子节点，子节点通过render 在返回子节点，
-    每个fiber上面都有一个return属性，都会指向他的父节点
