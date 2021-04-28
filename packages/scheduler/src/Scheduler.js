@@ -81,15 +81,20 @@ var deadlineObject = {
 
 function ensureHostCallbackIsScheduled() {
   if (isExecutingCallback) {
+    //表示已经有callback被调用了
     // Don't schedule work yet; wait until the next time we yield.
     return;
   }
   // Schedule the host callback using the earliest expiration in the list.
   var expirationTime = firstCallbackNode.expirationTime;
+  //获取的时候最高优先级的
   if (!isHostCallbackScheduled) {
+    //这个callback有没有进入调度
+    //没有调度就设置为true
     isHostCallbackScheduled = true;
   } else {
     // Cancel the existing host callback.
+    //有了的话, 取消之前的callback
     cancelHostCallback();
   }
   requestHostCallback(flushWork, expirationTime);
@@ -211,8 +216,13 @@ function flushImmediateWork() {
 function flushWork(didTimeout) {
   isExecutingCallback = true;//调用过之后 设置为true
   deadlineObject.didTimeout = didTimeout;
+  // deadlineObject = {
+  //   timeRemaining:判断有没有剩余时间
+  //   didTimeout,
+  // }
   try {
     if (didTimeout) {
+      //这种情况是有任务过期了
       // Flush all the expired callbacks without yielding.
       while (firstCallbackNode !== null) {
         // Read the current time. Flush all the callbacks that expire at or
@@ -232,7 +242,8 @@ function flushWork(didTimeout) {
         break;
       }
     } else {
-      // Keep flushing callbacks until we run out of time in the frame.
+      // Keep flu
+      //任务没有过期
       if (firstCallbackNode !== null) {
         do {
           flushFirstCallback();
@@ -306,6 +317,7 @@ function unstable_scheduleCallback(callback, deprecated_options) {
   var startTime =
     currentEventStartTime !== -1 ? currentEventStartTime : getCurrentTime();
   //getCurrentTime() ===> date.now
+  //startTime = date.now()
   var expirationTime;
   if (
     typeof deprecated_options === 'object' &&
@@ -350,11 +362,14 @@ function unstable_scheduleCallback(callback, deprecated_options) {
   } else {
     //链表有值
     var next = null;
-    var node = firstCallbackNode;
+    var node = firstCallbackNode;//队首
     do {
       if (node.expirationTime > expirationTime) {
-        // The new callback expires before this one.
-        //react对于传进来的callback 按照优先级的高低进行排序
+        //如果当前优先级低于expirationTime, 把下一个赋值能当前的node
+        //优先级从高到低排序
+        //如果node.expirationTime 都比 当前传入的expirationTime大, 
+        //证明当前传入的expirationTime优先级是比对首的优先级还高
+        //next = 优先级高的
         next = node;
         break;
       }
@@ -362,13 +377,13 @@ function unstable_scheduleCallback(callback, deprecated_options) {
     } while (node !== firstCallbackNode);
 
     if (next === null) {
-      // No callback with a later expiration was found, which means the new
-      // callback has the latest expiration in the list.
+      //next === null  证明当前传入cb, 优先级是最低的 因此next 还是当前的队首
       next = firstCallbackNode;
-      //这里 firstCallbackNode 仍然处于第一位
+      //插在最后面
     } else if (next === firstCallbackNode) {
       // The new callback has the earliest expiration in the entire list.
       firstCallbackNode = newNode;
+      // 插在最前面   优先级最高
       ensureHostCallbackIsScheduled();
       //相当于 reset
     }
@@ -492,6 +507,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
   typeof window === 'undefined' ||
   // "addEventListener" might not be available on the window object
   // if this is a mocked "window" object. So we need to validate that too.
+  //当前不处于浏览器环境
   typeof window.addEventListener !== 'function'
 ) {
   var _callback = null;
@@ -587,12 +603,14 @@ if (typeof window !== 'undefined' && window._schedMock) {
 
     var didTimeout = false;
     if (frameDeadline - currentTime <= 0) {
+      //浏览器把一帧的时间已经用完了
       // There's no time left in this idle period. Check if the callback has
       // a timeout and whether it's been exceeded.
       if (prevTimeoutTime !== -1 && prevTimeoutTime <= currentTime) {
         //prevTimeoutTime <= currentTime 说明任务已经过期
         // Exceeded the timeout. Invoke the callback even though there's no
         // time left.
+        //需要被强行执行
         didTimeout = true;
       } else {
         // No timeout.
@@ -634,6 +652,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
       // browser skipping a frame and not firing the callback until the frame
       // after that.
       //请求下一帧来做, 有很多的callback , 所以需要在下一帧中执行callback
+      //animationTick 当前 animationTick 只执行一个 callback
       requestAnimationFrameWithTimeout(animationTick);
     } else {
       // No pending work. Exit.
@@ -643,9 +662,12 @@ if (typeof window !== 'undefined' && window._schedMock) {
     }
 
     var nextFrameTime = rafTime - frameDeadline + activeFrameTime;//34
-    // frameDeadline ===> 0     activeFrameTime ===> 33
-    // 计算当前时间到下一帧 可以执行的时间
-    //nextFrameTime < 33  证明 浏览器刷新超过30帧
+    // 一直到下一帧, 剩下可以执行的时间是多少
+    // activeFrameTime是 33 
+    // frameDeadline是 0
+    // previousFrameTime是 33
+    // rafTime 当前的被调用的时间
+    // 
     if (
       nextFrameTime < activeFrameTime &&
       previousFrameTime < activeFrameTime
@@ -655,14 +677,18 @@ if (typeof window !== 'undefined' && window._schedMock) {
         // If the calculated frame time gets lower than 8, it is probably a bug.
         nextFrameTime = 8;
       }
-      activeFrameTime =
-        nextFrameTime < previousFrameTime ? previousFrameTime : nextFrameTime;
+      if(nextFrameTime < previousFrameTime){
+        activeFrameTime = previousFrameTime
+      }else {
+        activeFrameTime = nextFrameTime
+      }
     } else {
       previousFrameTime = nextFrameTime;//34
     }
     frameDeadline = rafTime + activeFrameTime;//34
     if (!isMessageEventScheduled) {
       isMessageEventScheduled = true;
+      //浏览器接收方 要等到浏览器刷新完成才进行
       window.postMessage(messageKey, '*');
     }
   };
@@ -674,6 +700,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
       // Don't wait for the next frame. Continue working ASAP, in a new event.
       // 这种情况 不需要等待下一帧来做这件事情, 而是直接执行
       // absoluteTimeout < 0 表示已经超时
+      //直接执行
       window.postMessage(messageKey, '*');
     } else if (!isAnimationFrameScheduled) {
       //isAnimationFrameScheduled 这个变量如果不是 true  证明还没有进度调度循环的过程

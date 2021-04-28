@@ -65,5 +65,13 @@
             schedule设计的目的就是为了保证react去执行更新的时间, 在浏览器的每一帧里面不超过一个特定的时间,
             希望留给浏览器去刷新动画或者是响应用户输入的反馈的时候, 每一帧都有足够的时间
 
+        unstable_scheduleCallback(callback, deprecated_options)
+          这个函数主要是为了寻找下一个优先级最高的任务, 
+          寻找过程中会调用ensureHostCallbackIsScheduled()
+
+          利用了 requestAnimationFrameCallback运行完成后, 会立马进行动画更新的一个设定,
+          然后通过 window.postMessage(')调用 react队列   时间总共是33ms
+
+
 
     
