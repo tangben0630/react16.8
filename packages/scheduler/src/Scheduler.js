@@ -195,7 +195,7 @@ function flushImmediateWork() {
     deadlineObject.didTimeout = true;
     try {
       do {
-        flushFirstCallback();
+        flushFirstCallback(); //执行callback链表, 直到第一个不过期的任务为止
       } while (
         // Keep flushing until there are no more immediate callbacks
         firstCallbackNode !== null &&
@@ -242,6 +242,7 @@ function flushWork(didTimeout) {
         break;
       }
     } else {
+      //didTimeout => false   没有任务过期
       // Keep flu
       //任务没有过期
       if (firstCallbackNode !== null) {
@@ -314,6 +315,13 @@ function unstable_wrapCallback(callback) {
 }
 
 function unstable_scheduleCallback(callback, deprecated_options) {
+  //1、创建一个任务节点newNode，按照优先级插入callback链表
+  //2,我们把任务按照过期时间排好顺序了，那么何时去执行任务呢？怎么去执行呢？答案是有两种情况
+  //1是当添加第一个任务节点的时候开始启动任务执行，
+  //2是当新添加的任务取代之前的节点成为新的第一个节点的时候。因为1意味着任务从无到有，应该 立刻启动。
+  //2意味着来了新的优先级最高的任务，应该停止掉之前要执行的任务，重新从新的任务开始执行
+  //上面两种情况就对应ensureHostCallbackIsScheduled方法执行的两种情况。
+  //
   var startTime =
     currentEventStartTime !== -1 ? currentEventStartTime : getCurrentTime();
   //getCurrentTime() ===> date.now
@@ -325,6 +333,8 @@ function unstable_scheduleCallback(callback, deprecated_options) {
     typeof deprecated_options.timeout === 'number'
   ) {
     // FIXME: Remove this branch once we lift expiration times out of React.
+    // 这里其实只会进第一个 if 条件，因为外部写死了一定会传 deprecated_options.timeout
+  // 越小优先级越高，同时也代表一个任务的过期时间
     expirationTime = startTime + deprecated_options.timeout;
   } else {
     switch (currentPriorityLevel) {
@@ -342,7 +352,7 @@ function unstable_scheduleCallback(callback, deprecated_options) {
         expirationTime = startTime + NORMAL_PRIORITY_TIMEOUT;
     }
   }
-
+// 环形双向链表结构
   var newNode = {
     callback,
     priorityLevel: currentPriorityLevel,
@@ -354,6 +364,11 @@ function unstable_scheduleCallback(callback, deprecated_options) {
   // Insert the new callback into the list, ordered first by expiration, then
   // by insertion. So the new callback is inserted any other callback with
   // equal expiration.
+  // 核心思路就是 firstCallbackNode 优先级最高 lastCallbackNode 优先级最低
+  // 新生成一个 newNode 以后，就从头开始比较优先级
+  // 如果新的高，就把新的往前插入，否则就往后插，直到没有一个 node 的优先级比他低
+  // 那么新的节点就变成 lastCallbackNode
+  // 在改变了firstCallbackNode的情况下，需要重新调度
   if (firstCallbackNode === null) {
     // firstCallbackNode 是react维护单向链表的头部，第一个
     // This is the first callback in the list.

@@ -1339,12 +1339,13 @@ function retrySuspendedRoot(
     requestWork(root, rootExpirationTime);
   }
 }
-//scheduleWorkToRoot   根本传入进来的fiber节点,向上寻找所对应的fiber对象
+//scheduleWorkToRoot   根据传入进来的fiber节点,向上寻找所对应的RootFiber对象
 //找的过程中也会进行一系列的操作
 function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   //这个方法是用来记录更新的时间的,调取的是一个时间的记录
+  //expirationTime  最新的update 产生的expirationTime
   recordScheduleUpdate();
-  // Update the source fiber's expiration time
+  // Update the source fiber's expiration time   更新产生更新的fiber的expirationTime
   // expirationTime ===>> 对应这一次创建的更新的过期时间
   if (
     fiber.expirationTime === NoWork ||
@@ -1355,6 +1356,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
     //如果fiber.expirationTime > 当前更新的 expirationTime  会把当前设置为优先级更高的, 证明这个对象之前有更新
     //,并且更新没有完成, 更新原来的 expirationTime
     // 更新原来 fiber 的 expirationTime
+    //最新产生的update的优先级, 是要低于当前fiber的优先级 
     fiber.expirationTime = expirationTime;
   }
   let alternate = fiber.alternate;
@@ -1371,15 +1373,16 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   let root = null;
   if (node === null && fiber.tag === HostRoot) {//找到了根节点
     root = fiber.stateNode;
-    //stateNode 就是 fiberroot 对象
+    //stateNode 就是 FiberRoot 对象
   } else {
     while (node !== null) { //node === null    只有RootFiber.return才会是null, 其他都不是
       alternate = node.alternate;
       if (
         node.childExpirationTime === NoWork ||
-        //寻找子节点中 优先级最高的额 ExpirationTime
+        //寻找子节点中 优先级最高的额 ExpirationTime   childExpirationTime ==> 子树中优先级最高的 ExpirationTime
         node.childExpirationTime > expirationTime
       ) {
+        //如果子树中优先级最高的 > 当前更新的 ExpirationTime 
         //就是在子节点中寻找优先级最高的,然后赋值了最新的 expirationTime
         //当前产生的更新, 在子节点中是不是优先级最高的
         node.childExpirationTime = expirationTime;
@@ -1449,7 +1452,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   return root;
 }
 
-function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
+function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {//开始调度工作
   //根据Fiber节点向上寻找对应的fiber对象, 
   const root = scheduleWorkToRoot(fiber, expirationTime);
   if (root === null) {
@@ -1460,12 +1463,16 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
     !isWorking &&
     nextRenderExpirationTime !== NoWork &&
     expirationTime < nextRenderExpirationTime
+     // 这个分支表示高优先级任务打断低优先级任务
+  // 这种情况发生于以下场景：有一个优先级较低的任务（必然是异步任务）没有执行完，
+  // 执行权交给了浏览器，这个时候有一个新的高优先级任务进来了
+  // 这时候需要去执行高优先级任务，所以需要打断低优先级任务
   ) {
     // isWorking 代表有任务正在进行, 可能被中断
     // nextRenderExpirationTime !== NoWork 代表人物可能是个异步的任务 执行到了一半
     // This is an interruption. (Used for performance tracking.)
     // expirationTime < nextRenderExpirationTime 代表新的任务的优先级高于目前正在做的任务
-    interruptedBy = fiber;
+    interruptedBy = fiber; //记录被谁打断的
     //新的高优先级的任务 打断了 老的 低优先级的任务
     resetStack();
   }
@@ -1597,9 +1604,13 @@ function scheduleCallbackWithExpirationTime(
   callbackExpirationTime = expirationTime;
   //originalStartTimeMs ===>> react代码加载进来立马获取的一个时间
   const currentMs = now() - originalStartTimeMs; //从刚进js到现在的时间
+  // 当前 performance.now() 和程序刚执行时的 performance.now() 相减
+  // 转化成 ms
   const expirationTimeMs = expirationTimeToMs(expirationTime);//算出将来的时间
+  // 当前任务的延迟过期时间，由过期时间 - 当前任务创建时间得出，超过时代表任务过期需要强制更新
   const timeout = expirationTimeMs - currentMs;//多长时间过期
   callbackID = scheduleDeferredCallback(performAsyncWork, {timeout});
+   // 生成一个 callbackID，用于关闭任务
 }
 
 // For every call to renderRoot, one of onFatal, onComplete, onSuspend, and
@@ -1701,6 +1712,13 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     return;
   }
 
+  // 判断是否需要批量更新
+  // 当我们触发事件回调时，其实回调会被 batchedUpdates 函数封装一次
+  // 这个函数会把 isBatchingUpdates 设为 true，也就是说我们在事件回调函数内部
+  // 调用 setState 不会马上触发 state 的更新及渲染，只是单纯创建了一个 updater，然后在这个分支 return 了
+  // 只有当整个事件回调函数执行完毕后恢复 isBatchingUpdates 的值，并且执行 performSyncWork
+  // 想必很多人知道在类似 setTimeout 中使用 setState 以后 state 会马上更新，如果你想在定时器回调中也实现批量更新，
+  // 就可以使用 batchedUpdates 将你需要的代码封装一下
   if (isBatchingUpdates) {//批量处理相关
     // Flush work at the end of the batch.
     if (isUnbatchingUpdates) {
@@ -1718,6 +1736,11 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     performSyncWork();//调用同步代码
   } else {
     //不是同步的话，进行异步 调度
+     // 函数核心是实现了 requestIdleCallback 的 polyfill 版本
+    // 因为这个函数浏览器的兼容性很差
+    // 具体作用可以查看 MDN 文档 https://developer.mozilla.org/zh-CN/docs/Web/API/Window/requestIdleCallback
+    // 这个函数可以让浏览器空闲时期依次调用函数，这就可以让开发者在主事件循环中执行后台或低优先级的任务，
+    // 而且不会对像动画和用户交互这样延迟敏感的事件产生影响
     scheduleCallbackWithExpirationTime(root, expirationTime);
   }
 }
@@ -1726,6 +1749,7 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   // Add the root to the schedule.
   // Check if this root is already part of the schedule.
   //主要操控两个全局变量 
+  // 判断 root 是否调度过
   if (root.nextScheduledRoot === null) {
     //这是当前没有进行过调度 lastScheduledRoot firstScheduledRoot
     //形成单向链表的数据结构
@@ -1838,6 +1862,8 @@ function performAsyncWork(dl) {
   //3, 调用的是performAsyncWork , react会传给他一个 deadline , 遍历每个单元 更新
   //   通过deadline判断,当前任务是否还有js运行时间片(默认22ms), 如果超时 
   if (dl.didTimeout) {
+    // 先判断帧到期时间和超时时间是否小于当前时间， 如果是的话， 则置didTimeout为true
+    // didTimeout为什么true 证明还没过期
     // The callback timed out. That means at least one update has expired.
     // Iterate through the root schedule. If they contain expired work, set
     // the next render expiration time to the current time. This has the effect
@@ -1864,10 +1890,11 @@ function performSyncWork() {
 
 function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
   deadline = dl;
-
+  // deadline 一帧内是否有剩余的时间
   // Keep working on roots until there's no more work, or until we reach
   // the deadline.
   findHighestPriorityRoot();
+  //findHighestPriorityRoot() 找到下一个有优先级任务
 
   if (deadline !== null) {
     //这个就是异步调用的时候 
@@ -1992,7 +2019,6 @@ function performWorkOnRoot(
 ) {
   invariant(
     !isRendering,
-    'performWorkOnRoot was called recursively. This error is likely caused ' +
       'by a bug in React. Please file an issue.',
   );
 
@@ -2000,10 +2026,7 @@ function performWorkOnRoot(
 
   // Check if this is async work or sync/expired work.
   if (deadline === null || isExpired) {
-    // Flush work without yielding.
-    // TODO: Non-yieldy work does not necessarily imply expired work. A renderer
-    // may want to perform some work without yielding, but also without
-    // requiring the root to complete (by triggering placeholders).
+    // deadline === null 是同步的情况
     // 同步更新, 强制
     let finishedWork = root.finishedWork;
     if (finishedWork !== null) {
@@ -2021,6 +2044,7 @@ function performWorkOnRoot(
         cancelTimeout(timeoutHandle);
       }
       const isYieldy = false;
+      //isYieldy  这个任务是否可以中断
       renderRoot(root, isYieldy, isExpired);
       finishedWork = root.finishedWork;
       if (finishedWork !== null) {
@@ -2054,6 +2078,7 @@ function performWorkOnRoot(
         if (!shouldYield()) {  
           // Still time left. Commit the root.
           completeRoot(root, finishedWork, expirationTime);
+          //更新的fiber树 映射到 dom树上面
         } else {
           // There's no time left. Mark this root as complete. We'll come
           // back and commit it later.

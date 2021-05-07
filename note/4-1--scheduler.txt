@@ -4,13 +4,14 @@
 
     1, 创建更新(ReactDom.render, setState, forceUpdate)
 
-    2, createUpdate
+    2, createUpdate //创建更新
 
-    3, scheduleWork
+    3, scheduleWork //开始调度
         找到更新对应的FiberRoot节点
         如果符合条件重置stack
         如果符合条件就请求工作调度
-
+        scheduleWork 主要的事情就是找到我们要处理的 root设置刚才获取到的执行优先级，然后调用 requestWork。
+        
           scheduleWork(fiber, expirationTime) 这个函数做了什么 ?
             1, 调用 scheduleWorkToRoot(fiber, expirationTime) 
                 1, 记录更新时间
@@ -24,7 +25,7 @@
             5, 符合条件调用 requestWork
 
 
-    4, addRootToScheduleWork 
+    4, addRootToSchedule 
         reactDom.render就会创建一个root节点, 多次调用会创建多个root节点, 都有独立的update
 
     5, 判断是否正在render阶段或者前后root不同 
@@ -71,6 +72,14 @@
 
           利用了 requestAnimationFrameCallback运行完成后, 会立马进行动画更新的一个设定,
           然后通过 window.postMessage(')调用 react队列   时间总共是33ms
+
+
+    7, performWork 
+        1, 判断是否有 deadline  一帧内是否有剩余的时间
+        2, 循环渲染 root 的条件
+        3, 超出时间片的处理
+
+    8, deadline 帮忙跳出循环
 
 
 
