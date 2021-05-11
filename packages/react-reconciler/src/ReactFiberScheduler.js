@@ -201,14 +201,8 @@ let originalReplayError;
 let rethrowOriginalError;
 
 function resetStack() {
-  //nextUnitOfWork 是用来记录遍历整个子树的时候, 执行到了哪个节点的更新
-  //nextUnitOfWork !== null 代表之前更新的是一个异步的任务, 并且执行到一般由于时间片不够, 交还给浏览器,
-  //然后这个值 记录的是下一个要执行的节点, 如果现在没有任务进来,没有优先级更高的任务进来打断, 等浏览器有空
-  //react会回来继续执行 nextUnitOfWork
-  //然后向上找被打断的任务
   if (nextUnitOfWork !== null) {
-    //先判断执行到哪个节点的时候,下一个即将要更新的节点
-    //如果浏览器有时间,会回来继续执行这个work
+    //nextUnitOfWork shang'c
     let interruptedWork = nextUnitOfWork.return;
     while (interruptedWork !== null) {
       //向上寻找所有被打断的任务 work
@@ -1348,15 +1342,13 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   // Update the source fiber's expiration time   更新产生更新的fiber的expirationTime
   // expirationTime ===>> 对应这一次创建的更新的过期时间
   if (
-    fiber.expirationTime === NoWork ||
+    fiber.expirationTime === NoWork || //没有发生过更新
     fiber.expirationTime > expirationTime
+    //fiber设置过 expirationTime, 并且更新还没有完成
+    //更新完成的话会置空
+    //fiber的优先级, 大于当前产生更新的优先级
   ) {
-    //fiber.expirationTime === NoWork 这个节点没有任何更新操作
-    //更新完成之后,会把expirationTime去掉,
-    //如果fiber.expirationTime > 当前更新的 expirationTime  会把当前设置为优先级更高的, 证明这个对象之前有更新
-    //,并且更新没有完成, 更新原来的 expirationTime
-    // 更新原来 fiber 的 expirationTime
-    //最新产生的update的优先级, 是要低于当前fiber的优先级 
+    //设置成优先级更高的 expirationTime
     fiber.expirationTime = expirationTime;
   }
   let alternate = fiber.alternate;
@@ -1463,10 +1455,6 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {//开始调
     !isWorking &&
     nextRenderExpirationTime !== NoWork &&
     expirationTime < nextRenderExpirationTime
-     // 这个分支表示高优先级任务打断低优先级任务
-  // 这种情况发生于以下场景：有一个优先级较低的任务（必然是异步任务）没有执行完，
-  // 执行权交给了浏览器，这个时候有一个新的高优先级任务进来了
-  // 这时候需要去执行高优先级任务，所以需要打断低优先级任务
   ) {
     // isWorking 代表有任务正在进行, 可能被中断
     // nextRenderExpirationTime !== NoWork 代表人物可能是个异步的任务 执行到了一半

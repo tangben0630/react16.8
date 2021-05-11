@@ -83,4 +83,22 @@
 
 
 
+
+
+
+    流程:
+
+      1, scheduleWork(fiber, expirationTime)
+      
+        1, 根据Fiber节点向上寻找对应的fiber对象
+        2, const root = scheduleWorkToRoot(fiber, expirationTime); 找不到就return
+        3, 
+
+
+
+
+
+
+
+
     

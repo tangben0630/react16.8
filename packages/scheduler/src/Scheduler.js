@@ -486,7 +486,7 @@ var requestAnimationFrameWithTimeout = function(callback) {
     localClearTimeout(rAFTimeoutID); //清除定时器
     callback(timestamp); //执行回调
   });
-  rAFTimeoutID = localSetTimeout(function() {
+  rAFTimeoutID = localSetTimeout(function() { 
     //防止 requestAnimation 太长时间没被调用
     //如果  100ms 内没有被调用 取消, 需要立即调用callback
     // cancel the requestAnimationFrame
@@ -669,7 +669,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
       //请求下一帧来做, 有很多的callback , 所以需要在下一帧中执行callback
       //animationTick 当前 animationTick 只执行一个 callback
       requestAnimationFrameWithTimeout(animationTick);
-    } else {
+    } else { 
       // No pending work. Exit.
       isAnimationFrameScheduled = false;
       //没有方法需要调度
@@ -712,6 +712,10 @@ if (typeof window !== 'undefined' && window._schedMock) {
     scheduledHostCallback = callback;
     timeoutTime = absoluteTimeout;
     if (isFlushingHostCallback || absoluteTimeout < 0) {
+      // isFlushingHostCallback 只在 channel.port1.onmessage 被设为 true
+    // isFlushingHostCallback表示所添加的任务需要立即执行
+    // 也就是说当正在执行任务或者新进来的任务已经过了过期时间
+    // 马上执行新的任务，不再等到下一帧
       // Don't wait for the next frame. Continue working ASAP, in a new event.
       // 这种情况 不需要等待下一帧来做这件事情, 而是直接执行
       // absoluteTimeout < 0 表示已经超时
