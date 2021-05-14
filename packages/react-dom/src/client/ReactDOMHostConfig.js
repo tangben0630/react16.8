@@ -29,11 +29,11 @@ import {validateDOMNesting, updatedAncestorInfo} from './validateDOMNesting';
 import * as ReactBrowserEventEmitter from '../events/ReactBrowserEventEmitter';
 import {getChildNamespace} from '../shared/DOMNamespaces';
 import {
-  ELEMENT_NODE,
+  ELEMENT_NODE, //1
   TEXT_NODE,
-  COMMENT_NODE,
+  COMMENT_NODE, //8
   DOCUMENT_NODE,
-  DOCUMENT_FRAGMENT_NODE,
+  DOCUMENT_FRAGMENT_NODE, //11
 } from '../shared/HTMLNodeType';
 
 import type {DOMContainer} from './ReactDOM';

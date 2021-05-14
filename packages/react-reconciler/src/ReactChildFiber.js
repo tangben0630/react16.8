@@ -615,25 +615,14 @@ function ChildReconciler(shouldTrackSideEffects) {
     newChildren: Array<*>,
     expirationTime: ExpirationTime,
   ): Fiber | null {
-    // This algorithm can't optimize by searching from boths ends since we
-    // don't have backpointers on fibers. I'm trying to see how far we can get
-    // with that model. If it ends up not being worth the tradeoffs, we can
-    // add it later.
-
-    // Even with a two ended optimization, we'd want to optimize for the case
-    // where there are few changes and brute force the comparison instead of
-    // going for the Map. It'd like to explore hitting that path first in
-    // forward-only mode and only go for the Map once we notice that we need
-    // lots of look ahead. This doesn't handle reversal as well as two ended
-    // search but that's unusual. Besides, for the two ended optimization to
-    // work on Iterables, we'd need to copy the whole set.
-
-    // In this first iteration, we'll just live with hitting the bad case
-    // (adding everything to a Map) in for every insert/move.
-
-    // If you change this code, also update reconcileChildrenIterator() which
-    // uses the same algorithm.
-
+    //1, 用一个循环相同位置进行比较，找到第一个不可复用的节点为止
+    //2, 其中updateSlot函数用来判断新老节点是否可以复用
+    //3, 新节点已经遍历完毕，直接把剩下的老节点删除了就行了
+    //4, 老节点已经遍历完毕，根据剩余新的节点直接创建 Fiber 
+    //5, 移动的情况下进行节点复用
+    //      把所有老数组元素按 key 或者是 index 放 Map 里
+    //      遍历剩下的 newChildren，找到 Map 里面可以复用的节点，如果找不到就创建
+    
     let resultingFirstChild: Fiber | null = null;
     let previousNewFiber: Fiber | null = null;
 
@@ -959,12 +948,14 @@ function ChildReconciler(shouldTrackSideEffects) {
       // the first item in the list.
       if (child.key === key) {
         //判断新老的key是否相同, 相同的话 复用节点
+        // 判断key是否相等
         if (
           child.tag === Fragment
             ? element.type === REACT_FRAGMENT_TYPE
             : child.elementType === element.type
             //如果老的节点是 Fragment type 判断新老的 elementType 是否相同
-        ) {
+            ) {
+          // key相等且type相等，删除旧子节点的兄弟节点，复用旧节点并返回
           //删除当前的节点的 siblings
           deleteRemainingChildren(returnFiber, child.sibling);
           const existing = useFiber(
@@ -979,15 +970,17 @@ function ChildReconciler(shouldTrackSideEffects) {
           return existing;
         } else {
           //如果不符合条件  删除  进入下一轮
+          // key相等但type不相等，删除旧子节点及兄弟节点，跳出循环
           deleteRemainingChildren(returnFiber, child);
           break;
         }
       } else {
         deleteChild(returnFiber, child);
       }
+      // 继续遍历此旧子节点的兄弟节点,找寻复用节点
       child = child.sibling;
     }
-
+    // 不能复用，则直接新建Fiber实例，并返回
     if (element.type === REACT_FRAGMENT_TYPE) {
       // 对于 REACT_FRAGMENT_TYPE 来说  props只有 children 
       const created = createFiberFromFragment(

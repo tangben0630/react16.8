@@ -650,7 +650,7 @@ function getHostSibling(fiber: Fiber): ?Instance {
   let node: Fiber = fiber;
   siblings: while (true) {
     // If we didn't find anything, let's try the next sibling.
-    while (node.sibling === null) {
+    while (node.sibling === null) {//没有兄弟节点, 
       if (node.return === null || isHostParent(node.return)) {
         // If we pop out of the root or hit the parent the fiber we are the
         // last sibling.
@@ -690,13 +690,14 @@ function commitPlacement(finishedWork: Fiber): void {
   }
 
   // Recursively insert all host nodes into the parent.
+  // 递归找父节点
   const parentFiber = getHostParentFiber(finishedWork);
 
   // Note: these two variables *must* always be updated together.
   let parent;
   let isContainer;
 
-  switch (parentFiber.tag) {
+  switch (parentFiber.tag) {//判断 tag
     case HostComponent:
       parent = parentFiber.stateNode;
       isContainer = false;
@@ -879,7 +880,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
     }
     case HostComponent: {
       const instance: Instance = finishedWork.stateNode;
-      if (instance != null) {
+      if (instance != null) {//几点已经创建
         // Commit the work prepared earlier.
         const newProps = finishedWork.memoizedProps;
         // For hydration we reuse the update path but we treat the oldProps

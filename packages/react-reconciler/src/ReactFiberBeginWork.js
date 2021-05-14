@@ -408,15 +408,9 @@ function updateFunctionComponent(
 
   let nextChildren;
   prepareToReadContext(workInProgress, renderExpirationTime);
-  if (__DEV__) {
-    ReactCurrentOwner.current = workInProgress;
-    ReactCurrentFiber.setCurrentPhase('render');
-    nextChildren = Component(nextProps, context);
-    ReactCurrentFiber.setCurrentPhase(null);
-  } else {
-    nextChildren = Component(nextProps, context);
+
+  nextChildren = Component(nextProps, context);
     //这里渲染出来的额就是  react.FC  return出来的 div 
-  }
   
   // React DevTools reads this flag.
   workInProgress.effectTag |= PerformedWork;
@@ -1508,9 +1502,10 @@ function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
-): Fiber | null {
+): Fiber | null { 
   const updateExpirationTime = workInProgress.expirationTime;
   //这边的 expirationTime 是 fiber 节点上的
+  //这里的 current 是 fiber对象, 而不是 FiberRoot 对象  FiberRoot是根节点, fiber 是每一个组件
   if (current !== null) {
     //第一次渲染current是有值的 , 后面是没有值的
     const oldProps = current.memoizedProps;

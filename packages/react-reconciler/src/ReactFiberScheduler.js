@@ -351,19 +351,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   isWorking = true;
   isCommitting = true;
   startCommitTimer();
-
-  invariant(
-    root.current !== finishedWork,
-    'Cannot commit the same tree as before. This is probably a bug ' +
-      'related to the return field. This error is likely caused by a bug ' +
-      'in React. Please file an issue.',
-  );
-  const committedExpirationTime = root.pendingCommitExpirationTime;
-  invariant(
-    committedExpirationTime !== NoWork,
-    'Cannot commit an incomplete root. This error is likely caused by a ' +
-      'bug in React. Please file an issue.',
-  );
+  
   root.pendingCommitExpirationTime = NoWork;
 
   // Update the pending priority levels to account for the work that we are
@@ -377,6 +365,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       childExpirationTimeBeforeCommit < updateExpirationTimeBeforeCommit)
       ? childExpirationTimeBeforeCommit
       : updateExpirationTimeBeforeCommit;
+      //标记优先级  mark
   markCommittedPriorityLevels(root, earliestRemainingTimeBeforeCommit);
 
   let prevInteractions: Set<Interaction> = (null: any);
@@ -412,7 +401,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // Invoke instances of getSnapshotBeforeUpdate before mutation.
   nextEffect = firstEffect;
   startCommitSnapshotEffectsTimer();
-  while (nextEffect !== null) {
+  while (nextEffect !== null) {//第一次循环
     let didError = false;
     let error;
     if (__DEV__) {
@@ -450,7 +439,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // ref unmounts.
   nextEffect = firstEffect;
   startCommitHostEffectsTimer();
-  while (nextEffect !== null) {
+  while (nextEffect !== null) {//第二次循环
     let didError = false;
     let error;
     if (__DEV__) {
@@ -487,7 +476,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
 
   nextEffect = firstEffect;
   startCommitLifeCyclesTimer();
-  while (nextEffect !== null) {
+  while (nextEffect !== null) {//第三次循环
     let didError = false;
     let error;
     if (__DEV__) {
@@ -684,10 +673,11 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
     // means that we don't need an additional field on the work in
     // progress.
     const current = workInProgress.alternate;
-    const returnFiber = workInProgress.return;
-    const siblingFiber = workInProgress.sibling;
+    const returnFiber = workInProgress.return;//父节点
+    const siblingFiber = workInProgress.sibling;//兄弟节点
 
     if ((workInProgress.effectTag & Incomplete) === NoEffect) {
+      //没有错误
       // This fiber completed.
       if (enableProfilerTimer) {
         if (workInProgress.mode & ProfileMode) {
@@ -718,11 +708,14 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
         returnFiber !== null &&
         // Do not append effects to parents if a sibling failed to complete
         (returnFiber.effectTag & Incomplete) === NoEffect
+        //Incomplete  有错误的
       ) {
         // Append all the effects of the subtree and this fiber onto the effect
         // list of the parent. The completion order of the children affects the
         // side-effect order.
         if (returnFiber.firstEffect === null) {
+          //目前这个fiber没记录任何有改变的子节点
+          //直接把当前的firstEffect  赋值  向上打通链条
           returnFiber.firstEffect = workInProgress.firstEffect;
         }
         if (workInProgress.lastEffect !== null) {
@@ -762,7 +755,7 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
         // We've reached the root.
         return null;
       }
-    } else {
+    } else {//报错的节点
       if (workInProgress.mode & ProfileMode) {
         // Record the render duration for the fiber that errored.
         stopProfilerTimerIfRunningAndRecordDelta(workInProgress, false);
@@ -905,6 +898,7 @@ function renderRoot(
     nextRoot = root;
     nextRenderExpirationTime = expirationTime;
     // nextUnitOfWork 是一个 fiber 对象, 对应的是 RootFiber 而不是 FiberRoot
+    //复制出一份 fiber, workInProgress, 不影响现在的 fiber树
     nextUnitOfWork = createWorkInProgress(
       nextRoot.current,
       null,
