@@ -1,0 +1,136 @@
+
+1, 全局变量
+
+    isWorking：commitRoot和renderRoot开始都会设置为true，
+                然后在他们各自阶段结束的时候都重置为false。
+                用来标志是否当前有更新正在进行，不区分阶段。
+
+    nextRoot：用于记录下一个将要渲染的root节点
+
+    nextRenderExpirationTime：下一个要渲染的任务的ExpirationTime
+
+    firstScheduledRoot & lastScheduledRoot：
+                  用于存放有任务的所有root的单列表结构。
+                  在findHighestPriorityRoot用来检索优先级最高的root，
+                  在addRootToSchedule中会修改。
+
+    callbackExpirationTime & callbackID：
+                  callbackExpirationTime记录请求ReactScheduler
+                  的时候用的过期时间，如果在一次调度期间有新的调度请求进来了，
+                  而且优先级更高，那么需要取消上一次请求，如果更低则无需再次请求调度。
+                  callbackID是ReactScheduler返回的用于取消调度的 ID。
+
+    nextFlushedRoot & nextFlushedExpirationTime：
+                  用来标志下一个需要渲染的root和对应的
+                  expirtaionTime，注意：通过findHighestPriorityRoot找到最高优先级的，
+                  通过flushRoot会直接设置指定的，不进行筛选
+
+2, requestWork
+
+    请求工作
+
+3, 如果是同步  performSyncWork 异步的话 调用 SchedulerCallbackWithExpirationTime
+
+4, 调度完成后, 执行的是 performAsyncWork, 调用的是有 deadline  循环寻找是否又完成的任务
+
+5, performWorkOnRoot 做的是一些更新的事情
+
+
+
+具体流程:
+
+  1, scheduleWork()
+
+    1, 我们更新完 fiber的 updateQueue之后，就调用 scheduleWork 开始调度这次的工作
+    2, 找到我们要处理的 root设置刚才获取到的执行优先级，然后调用 requestWork。
+    3, setState 是ReacElement调用的, 加入调度队列的是 RootFiber, 
+        更新的开始也会从 RootFiber 开始的
+
+  2, requestWork()
+
+      1, 将Root加入到Schedule（addRootToSchedule），如果此root已经调度过（
+          已经在scheduledRoot的单向链表中），可能更新root.expirationTime。
+          它维护了一条 scheduledRoot 的单向链表，比如说 lastScheduleRoot == null，
+          意味着我们当前已经没有要处理的 root，这时候就把 firstScheduleRoot、lastScheduleRoot、
+          root.nextScheduleRoot 都设置为 root。如果 lastScheduleRoot !== null，
+          则把 lastScheduledRoot.nextScheduledRoot设置为root，
+          等 lastScheduledRoot调度完就会开始处理当前 root。
+
+      2,  是否是同步任务？是：performSyncWork 否：scheduleCallbackWithExpirationTime
+
+      3,  当我们触发事件回调时，其实回调会被 batchedUpdates 函数封装一次
+          这个函数会把 isBatchingUpdates 设为 true，也就是说我们在事件回调函数内部
+          调用 setState 不会马上触发 state 的更新及渲染，只是单纯创建了一个 updater，
+          然后在这个分支 return 了
+          只有当整个事件回调函数执行完毕后恢复 isBatchingUpdates 的值，并且执行 
+          performSyncWork
+          想必很多人知道在类似 setTimeout 中使用 setState 以后 state 会马上更新，
+          如果你想在定时器回调中也实现批量更新，
+          就可以使用 batchedUpdates 将你需要的代码封装一下
+
+  3, scheduleDeferredCallback()
+
+      1, 我们把任务按照优先级排序好后, 有两种执行的方式
+          1, 没有的情况下, 立刻启动
+          2, 有的情况, 看看谁的优先级高
+
+  4, ensureHostCallbackIsScheduled()
+
+      1, 开始执行 但是不是直接执行, 而是在空闲时间执行
+  
+  5, requestHostCallback()
+
+      1, 判断有没有过期, 过期的 立马执行, 没过期的, 在一帧剩下的时间尽量执行
+      
+  6, requestAnimationFrameWithTimeout()
+
+      1, 优化后的requestAnimationFrame
+      
+  7, animationTick()
+
+      1, 有任务在进行递归请求下一帧, 没任务就退出
+      2, 每一帧回调函数都会调用window.postMessage(messageKey, ‘’)
+
+  8, flushWork()
+
+      1, flushWork根据didTimeout参数有两种处理逻辑，如果为true，
+          就会把任务链表里的过期任务全都给执行一遍,
+          如果为false则在当前帧到期之前尽可能多的去执行任务。
+
+      2,  如果还有任务的话，再启动一轮新的任务执行调度 ensureHostCallbackIsScheduled
+
+      3,  这里的执行任务是调用flushFirstCallback，执行callback中优先级最高的任务
+
+  9, flushFirstCallback()
+
+      1, 这里就是链表操作，执行完firstCallback后把这个callback从链表中删除
+      2, 这里调用的是当前任务节点flushedNode.callback，那我们这个callback是啥呢
+      3, scheduleCallbackWithExpirationTime函数scheduleDeferredCallback(performAsyncWork, {timeout})
+          相信大家对这个还有印象，它其实就是我们进入Scheduler.js的入口函数
+      4, 如它传入performAsyncWork作为回调函数，也就是在此函数中调用的回调函数就是这个。
+
+  10, performAsyncWork()
+
+      1, 这个函数得到一个参数dl，这个参数就是之前调用回调函数传入的deadlineObject。
+      2, 调用performWork(NoWork, dl);第一个参数为minExpirationTime这里传入NoWork=0，第二个参数Deadline=dl。
+      3, equestWork 中如果是同步的情况吗？退到这个函数我们瞧瞧，如果是同步的情况，直接调用performSyncWork
+
+  11, performWork()
+
+      1, deadline如果是null, 执行所有任务
+      2, 如果是异步（deadline !== null）,遍历所有的root，执行完所有root中的过期任务，因为过期任务是必须要执行的。
+          如果这一帧还有空闲时间，尽可能的执行更多任务。
+      3, performWorkOnRoot()
+
+  12, performWorkOnRoot()
+
+      1, 执行任务 renderRoot, completeRoot
+      2, 如果是同步或者任务已经过期的情况下，先renderRoot, 然后completeRoot
+      3, 如果是异步的话，先renderRoot, 
+          完了之后看看这一帧是否还有空余时间，如果有的话completeRoot，没有时间了的话，只能等下一帧
+
+  13, renderRoot()
+
+      1, nextUnitOfWork = createWorkInProgress() 拷贝一份 fiber 节点，在 nextUnitOfWork 中修改，防止改变当前 fiberTree。
+          nextUnitOfWork 是下一个要更新的节点。
+      2, 进入workLoop

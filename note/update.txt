@@ -1,0 +1,135 @@
+1, ReactDOM: {//里面的属性
+  createPortal,
+  findDOMNode(){},
+  render(){
+    return legacyRenderSubtreeIntoContainer(){}
+  },
+  unmountComponentAtNode(){},
+  flushSync ?
+}
+
+2, root: 根节点
+
+    root = legacyRenderSubtreeIntoContainer() ==> new ReactRoot() ==> createFiberRoot() ==> new FiberNode()
+    //RootFiber上的tag会被赋值为 HostRoot。这个之后会用来判断节点类型
+
+3, reconciler: 是一个react 操作跟平台无关的这些节点的调和的一些操作.
+
+4, FiberRoot 就是createFiberRoot()返回的对象, 返回的是根节点
+
+      1, 整个应用的起点
+      2, 包含应用挂载的目标节点
+      3, 记录整个应用的更新过程的各种信息
+
+      {
+        current: fiber,
+        finishedWork: 再一次更新渲染中, 那个完成了的记录, 标记, 输出到dom上的时候, 就是读取了这个属性
+      }
+
+5, Fiber: createHostRootFiber函数返回的fiber对象, 每一个节点都对应一个fiber对象，不是Root专有的
+
+      1, 每一个ReactEelment对应一个 Fiber对象
+      2, 记录节点的各种状态
+      3, 串联整个应用
+
+      {
+        stateNode: 存放实例,
+        memoizedState: 上次渲染时候的state,
+        pendingProps: 新的变动带来新的props,
+        updateQueue: 该fiber组件产生的update会放在这个队列里,
+        childExpirationTime: ,
+        alternate: 在Fiber树更新的过程中, 每个Fiber都会有一个对应的Fiber, 称为: current  workInProgress,
+                    渲染完成后他们会交换位置, current就是当前的对象, workInProgress是我们将要进行跟新的,
+                    这是双缓存, 就是复制的情况
+      }
+
+6, 首先应用会创建一个 FiberRoot, FiberRoot.current = RootFiber     RootFiber.stateNode = FiberRoot
+
+    FC 没有实例, 所以没有 stateNode
+
+7, Update
+
+    1, 用于记录组件状态的改变
+    2, 存放于updateQueue中
+    3, 多个Update可以同时存在
+
+    {
+      // export const UpdateState = 0;
+      // export const ReplaceState = 1;
+      // export const ForceUpdate = 2;
+      // export const CaptureUpdate = 3;
+      // 指定更新的类型，值为以上几种
+      // 提下CaptureUpdate，在React16后有一个ErrorBoundaries功能
+      // 即在渲染过程中报错了，可以选择新的渲染状态（提示有错误的状态），来更新页面
+      // 0更新 1替换 2强制更新 3捕获性的更新
+
+      expirationTime: expirationTime,
+      tag: UpdateState,
+      payload: setstate的参数,
+      callback: 更新完成后对应的回调, 
+      next: 下一个更新,
+      nextEffect: null,
+    }
+
+8, updateQueue
+
+    1, 存放update
+    2, 他是一个单向链表的结构, 每个update都会有一个 next
+
+    {
+      baseState: 应用更新后的 state, 每次更新都是在这个基础上进行
+      firstUpdate: 队列中的第一个 Update, 
+      lastUpdate: 队列中最后一个 Update,
+      firstEffect: 
+
+    }
+
+    enqueueUpdate() 
+
+      //创建了update对象之后，紧接着调用了enqueueUpdate
+      //把update对象放到队列enqueueUpdate
+      //同时保证current和workInProgress的updateQueue是一致的
+
+
+9, setState
+
+    给节点的fiber创建更新
+
+    classComponentUpdater,
+        // 把更新放到队列UpdateQueue
+        enqueueUpdate(fiber, update);
+        // 开始进入React异步渲染的核心：React Scheduler
+        scheduleWork(fiber, expirationTime);
+
+    如果是 ForceUpdate, update.tag = ForceUpdate
+
+
+
+10, updateContainer()
+
+    1, 这个函数里面使用了 currentTime 和 expirationTime, currentTime是用来计算expirationTime的,
+
+    2,  const current = container.current;
+        const currentTime = requestCurrentTime();
+        const expirationTime = computeExpirationForFiber(currentTime, current);
+        return updateContainerAtExpirationTime(
+          element,
+          container,
+          parentComponent,
+          expirationTime,
+          callback,
+        );
+
+        export function updateContainerAtExpirationTime(
+          element: ReactNodeList,
+          container: OpaqueRoot,
+          parentComponent: ?React$Component<any, any>,
+          expirationTime: ExpirationTime,
+          callback: ?Function,
+        ) {
+          const current = container.current;
+          // ......
+          return scheduleRootUpdate(current, element, expirationTime, callback);
+        }
+  //有点酸
+  //也有点酸
