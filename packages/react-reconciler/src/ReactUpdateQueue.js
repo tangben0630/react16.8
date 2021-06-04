@@ -279,15 +279,6 @@ function getStateFromUpdate<State>(
       let partialState;
       if (typeof payload === 'function') {
         // Updater function
-        if (__DEV__) {
-          if (
-            debugRenderPhaseSideEffects ||
-            (debugRenderPhaseSideEffectsForStrictMode &&
-              workInProgress.mode & StrictMode)
-          ) {
-            payload.call(instance, prevState, nextProps);
-          }
-        }
         partialState = payload.call(instance, prevState, nextProps);
       } else {
         // Partial state object
@@ -365,6 +356,7 @@ export function processUpdateQueue<State>(
       const callback = update.callback;
       if (callback !== null) {
         workInProgress.effectTag |= Callback;
+        //state 执行完后需要调用 callback
         // Set this to null, in case it was mutated during an aborted render.
         update.nextEffect = null;
         if (queue.lastEffect === null) {

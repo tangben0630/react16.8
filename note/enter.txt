@@ -1,0 +1,60 @@
+
+1, 判断组件的更新是否可以优化
+
+2, 根据节点类型分发处理
+
+3, 根据et判断是否可以跳过
+
+  1, beginWork: 就是执行对每一个点进行更新的操作
+  2, 会根据childEt: 判断是否跳过子树的更新, 没有更新直接跳过直接renturn child
+
+4, FC
+
+  1,  const Component = workInProgress.type;
+      const unresolvedProps = workInProgress.pendingProps;
+      const resolvedProps =
+        workInProgress.elementType === Component
+          ? unresolvedProps
+          : resolveDefaultProps(Component, unresolvedProps);
+      return updateFunctionComponent(
+        current,
+        workInProgress,
+        Component,
+        resolvedProps,
+        renderExpirationTime,
+      );
+
+      function updateFunctionComponent(
+        current,
+        workInProgress,
+        Component,
+        nextProps: any,
+        renderExpirationTime,
+      ) {
+        const unmaskedContext = getUnmaskedContext(workInProgress, Component, true);
+        const context = getMaskedContext(workInProgress, unmaskedContext);
+
+        let nextChildren;
+        prepareToReadContext(workInProgress, renderExpirationTime);
+
+        nextChildren = Component(nextProps, context);
+          //这里渲染出来的额就是  react.FC  return出来的 div 
+        
+        //reconcileChildren 把 nextChildren 变成fiber对象
+        //返回的是 reactEle  所以调用 reconcileChildren 把 nextChildren 变成fiber对象
+        //变成 fiber对象后, 才能处理这些节点对他进行更新
+        //如果是dom节点  还需要创建真正的额dom节点的实例  最后挂载到dom 上面 显示在页面上面
+        reconcileChildren(
+          current,
+          workInProgress,
+          nextChildren,
+          renderExpirationTime,
+        );
+        // workInProgress挂载上child这个属性
+        //说明在reconcileChildren的时候  最终在当前的fiber对象上面挂载上这个 child这个属性
+        return workInProgress.child;
+      }
+
+5, reconcileChildren  传说中的, diff算法
+
+  

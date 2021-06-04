@@ -8,24 +8,88 @@
 </head>
 <body>
   <script>
-    
-
-
-    
-    const channel = new MessageChannel();
-    const port = channel.port2;
-    channel.port1.onmessage = function(event) {
-      console.log(1, 'onmessage')
+    const initState = {
+      user: 'david',
+      age: 18,
+      count: 0
     }
-    requestAnimationFrame(function (timestamp) {
-      setTimeout(function () {
-        console.log('setTimeout')
-      }, 0)
-      port.postMessage(undefined)
-      Promise.resolve(1).then(function (value) {
-        console.log(value, 'Promise')
-      })
+    //redux
+    function createStore(initState){
+      let state = initState
+      let listeners = []
+
+      //订阅
+      function subscribe(listener){
+        if(typeof listener === 'function'){
+          listeners.push(listener)
+        }
+      }
+
+      //
+      function dispatch(newState){
+        listeners.forEach(fn=>fn())
+        //数据变成 reducer 返回的
+        state = reducer()
+      }
+
+      function getState(){
+        return state
+      }
+
+      return {
+        subscribe,
+        getState,
+        dispatch
+      }
+    }
+
+    //actionType.js
+    const ADD = 'ADD'
+
+    //count.js
+    function addCount(){
+      return {
+        type: ADD
+      }
+    }
+
+    //reducer.js
+
+    function reducer(state = initState, action){
+      action = addCount()
+      const count = state.count
+      if(action.type == ADD){
+        return {
+          ...state,
+          count: count + 1
+        }
+      }
+
+      return {
+        ...state
+      }
+    }
+
+    
+    
+
+    const store = createStore(initState)
+
+    store.subscribe(()=>{
+      let state = store.getState()
+      console.log(state, ' =====111');
     })
+    store.dispatch()
+    store.dispatch(addCount())
+    store.dispatch(addCount())
+    console.log(store.getState(), ' =====222');
+
+    //正常的 redux 修改数据的流程
+    //1, 文件中写好 action 的类型
+    //2, 
+    //3, 中间件就是重写了 dispatch 方法, 先用 next 缓存之前的 dispatch, 处理完中间件逻辑后, 
+
+
   </script>
 </body>
 </html>

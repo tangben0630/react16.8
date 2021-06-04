@@ -131,5 +131,20 @@
           // ......
           return scheduleRootUpdate(current, element, expirationTime, callback);
         }
-  //有点酸
-  //也有点酸
+        
+Class update: 
+
+  1, constructClassInstance 
+      创建 instance
+      将实例赋值给stateNode属性：workInProgress.stateNode = instance
+
+  2, mountClassInstance     
+      挂载实例  
+      主要工作是更新instance.state，并且执行一些生命周期
+
+  3, useState:
+
+      1, 每个组件都是一个fiber节点, 用来保存组件的数据信息, 
+      2, 当函数组件渲染执行的时候, 没执行到一个hook, 就会将currentRenderingFiber.memorizedState
+          指针向后移一下, 
+

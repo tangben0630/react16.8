@@ -134,3 +134,4 @@
       1, nextUnitOfWork = createWorkInProgress() 拷贝一份 fiber 节点，在 nextUnitOfWork 中修改，防止改变当前 fiberTree。
           nextUnitOfWork 是下一个要更新的节点。
       2, 进入workLoop
+      3, 循环每个节点, 更新每个节点, 然后再commitRoot
