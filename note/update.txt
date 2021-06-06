@@ -148,3 +148,7 @@ Class update:
       2, 当函数组件渲染执行的时候, 没执行到一个hook, 就会将currentRenderingFiber.memorizedState
           指针向后移一下, 
 
+
+   
+
+   

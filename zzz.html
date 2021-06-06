@@ -89,6 +89,13 @@
     //2, 
     //3, 中间件就是重写了 dispatch 方法, 先用 next 缓存之前的 dispatch, 处理完中间件逻辑后, 
 
+      setTimeout(()=>{
+        const obj = isList.filter((el)=>{
+          return this.Val == el.value
+        })
+        console.log(label[0].label ,'对应的汉字')
+        this.postLabel = label[0].label
+      }, 30)
 
   </script>
 </body>
